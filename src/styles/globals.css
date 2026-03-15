@@ -1,0 +1,77 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&family=Space+Mono:wght@400;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --accent: #ff4d1c;
+  --cream: #f0ede4;
+  --dark: #0a0a0a;
+  --border: #e0ddd4;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: 'Noto Sans KR', sans-serif;
+  background: var(--cream);
+  color: var(--dark);
+}
+
+.font-mono { font-family: 'Space Mono', monospace; }
+
+/* 드래그 업로드 영역 */
+.drop-zone {
+  border: 2px dashed var(--border);
+  transition: all 0.2s;
+}
+.drop-zone.drag-over {
+  border-color: var(--accent);
+  background: #fff5f2;
+}
+
+/* 버튼 공통 */
+.btn-primary {
+  background: var(--accent);
+  color: white;
+  font-weight: 700;
+  padding: 14px 28px;
+  border-radius: 100px;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+}
+.btn-primary:hover { background: #e03a0a; }
+.btn-primary:active { transform: scale(0.98); }
+.btn-primary:disabled { background: #ccc; cursor: not-allowed; }
+
+/* 로딩 스피너 */
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinner {
+  width: 20px; height: 20px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  display: inline-block;
+}
+
+/* 카드 */
+.card {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px;
+}
+
+/* 크레딧 뱃지 */
+.credit-badge {
+  font-family: 'Space Mono', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 14px;
+  border-radius: 100px;
+  background: #fff0ec;
+  color: var(--accent);
+  border: 1px solid #ffc4b3;
+}
