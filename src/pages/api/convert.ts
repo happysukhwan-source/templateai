@@ -3,17 +3,15 @@ import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
 import { isAdmin } from '../../lib/admin'
 
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-if (!serviceKey) {
-  console.warn('[API] Warning: SUPABASE_SERVICE_ROLE_KEY is missing.')
-}
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  serviceKey || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
-
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!serviceKey) {
+    console.warn('[API] Warning: SUPABASE_SERVICE_ROLE_KEY is missing.')
+  }
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    serviceKey || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
   const { imageData, mimeType, userId, userEmail, fileName, cropY1, cropY2, sectionNum, totalSections } = req.body
