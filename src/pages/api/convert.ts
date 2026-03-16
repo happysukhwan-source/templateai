@@ -123,7 +123,7 @@ function removeTspan(svg: string): string {
 }
 
 async function convertToSvg(base64: string, mimeType: string, sectionNum: number, totalSections: number): Promise<string> {
-  const apiKey = process.env.ANTHROPIC_API_KEY
+  const apiKey = process.env.ANTHROPIC_API_KEY?.trim()
   if (!apiKey || apiKey === '여기에_API키_입력') {
     throw new Error('ANTHROPIC_API_KEY가 설정되지 않았습니다.')
   }
