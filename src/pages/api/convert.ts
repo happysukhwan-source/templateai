@@ -4,8 +4,7 @@ import { createClient } from '@supabase/supabase-js'
 import { isAdmin } from '../../lib/admin'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  console.error('[ENV CHECK] ANTHROPIC_API_KEY present:', !!process.env.ANTHROPIC_API_KEY, 'length:', process.env.ANTHROPIC_API_KEY?.length)
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     serviceKey,
