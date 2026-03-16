@@ -130,17 +130,17 @@ function removeTspan(svg: string): string {
 
 async function convertToSvg(base64: string, mimeType: string, sectionNum: number, totalSections: number): Promise<string> {
   const apiKey = process.env.ANTHROPIC_API_KEY
-  
+
   // PRODUCTION DEBUG LOG
   console.log(`[DEBUG-AUTH] Key Check - Found: ${!!apiKey}, Length: ${apiKey?.length || 0}`);
-  
+
   if (!apiKey || apiKey.trim().length === 0) {
     throw new Error('ANTHROPIC_API_KEY가 서버 설정에 누락되었습니다. Vercel Dashboard의 Environment Variables를 확인해주세요.')
   }
-  
+
   const client = new Anthropic({ apiKey: apiKey.trim() })
   const response = await client.messages.create({
-    model: 'claude-3-haiku-20240307',
+    model: 'claude-haiku-4-5-20251001',
     max_tokens: 8192,
     messages: [{
       role: 'user',
