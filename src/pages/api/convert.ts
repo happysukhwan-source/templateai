@@ -3,14 +3,15 @@ import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
 import { isAdmin } from '../../lib/admin'
 
-// 서버사이드 Supabase (크레딧 차감용 - RLS 우회를 위해 SERVICE_ROLE_KEY 사용)
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+if (!serviceKey) {
+  console.warn('[API] Warning: SUPABASE_SERVICE_ROLE_KEY is missing.')
+}
+
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   serviceKey || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
-
-const MAX_HEIGHT_PX = 1800
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
@@ -21,7 +22,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const isUserAdmin = isAdmin(userEmail)
 
-    // 크레딧 확인 (프로필이 없으면 자동 생성 - Lazy Creation)
     let { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('free_credits, paid_credits')
@@ -29,23 +29,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .single()
 
     if (profileError || !profile) {
-      // 프로필이 없는 경우 새로 생성 (기본 5크레딧)
-      const { data: newProfile, error: upsertError } = await supabase
+      // upsert (ignoreDuplicates 제거)
+      const { error: upsertError } = await supabase
         .from('profiles')
         .upsert({
           id: userId,
           email: userEmail || '',
           free_credits: 5,
           paid_credits: 0
-        }, { onConflict: 'id', ignoreDuplicates: true })
-        .select()
-        .single()
+        }, { onConflict: 'id' })
 
       if (upsertError) {
-        console.error('[API] Profile creation failed:', upsertError);
+        console.error('[API] Profile creation failed:', upsertError.message, upsertError.details)
         return res.status(500).json({ error: '프로필 생성에 실패했습니다.' })
       }
-      profile = newProfile
+
+      // upsert 후 다시 조회
+      const { data: fetchedProfile } = await supabase
+        .from('profiles')
+        .select('free_credits, paid_credits')
+        .eq('id', userId)
+        .single()
+
+      profile = fetchedProfile
     }
 
     const totalCredits = (profile?.free_credits || 0) + (profile?.paid_credits || 0)
@@ -61,7 +67,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     let finalBuffer = imageBuffer
 
-    // cropY1, cropY2가 있으면 해당 섹션만 잘라서 변환
     if (cropY1 !== undefined && cropY2 !== undefined) {
       const sectionHeight = cropY2 - cropY1
       finalBuffer = await sharp(imageBuffer)
@@ -74,7 +79,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const svg = await convertToSvg(finalBase64, 'image/png', sectionNum || 1, totalSections || 1)
     const cleanedSvg = removeTspan(svg)
 
-    // ★ 변환 성공한 경우에만 크레딧 1개 차감
     if (!isUserAdmin) {
       if ((profile?.free_credits || 0) > 0) {
         await supabase
@@ -89,7 +93,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     }
 
-    // 변환 기록 저장
     await supabase.from('conversions').insert({
       user_id: userId,
       original_filename: fileName || 'unknown',
@@ -100,13 +103,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json({ svg: cleanedSvg })
 
   } catch (err: any) {
-    // ★ 오류 발생 시 크레딧 차감 안됨 (여기까지 오면 차감 코드가 실행 안된 것)
     console.error('Convert error:', err)
     return res.status(500).json({ error: err.message || '변환 중 오류가 발생했어요' })
   }
 }
 
-// ── tspan 후처리 ──
 function removeTspan(svg: string): string {
   return svg.replace(
     /<text([^>]*)>([\s\S]*?)<\/text>/g,
@@ -126,7 +127,11 @@ function removeTspan(svg: string): string {
 }
 
 async function convertToSvg(base64: string, mimeType: string, sectionNum: number, totalSections: number): Promise<string> {
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+  const apiKey = process.env.ANTHROPIC_API_KEY
+  if (!apiKey || apiKey === '여기에_API키_입력') {
+    throw new Error('ANTHROPIC_API_KEY가 설정되지 않았습니다.')
+  }
+  const client = new Anthropic({ apiKey })
   const response = await client.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 8192,
