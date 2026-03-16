@@ -5,9 +5,7 @@ import { isAdmin } from '../../lib/admin'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!serviceKey) {
-    console.warn('[API] Warning: SUPABASE_SERVICE_ROLE_KEY is missing.')
-  }
+  console.log('[API] serviceKey present:', !!serviceKey, 'length:', serviceKey?.length)
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     serviceKey || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
