@@ -4,11 +4,11 @@ import { createClient } from '@supabase/supabase-js'
 import { isAdmin } from '../../lib/admin'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-  console.log('[API] serviceKey present:', !!serviceKey, 'length:', serviceKey?.length)
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    serviceKey || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    serviceKey,
+    { auth: { autoRefreshToken: false, persistSession: false } }
   )
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
