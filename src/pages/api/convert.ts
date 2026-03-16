@@ -140,7 +140,7 @@ async function convertToSvg(base64: string, mimeType: string, sectionNum: number
   
   const client = new Anthropic({ apiKey: apiKey.trim() })
   const response = await client.messages.create({
-    model: 'claude-3-5-sonnet-latest',
+    model: 'claude-3-sonnet-20240229',
     max_tokens: 8192,
     messages: [{
       role: 'user',
