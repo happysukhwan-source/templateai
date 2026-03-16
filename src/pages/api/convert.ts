@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
-import Anthropic from '@anthropic-ai/sdk'
+import { Anthropic } from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
 import { isAdmin } from '../../lib/admin'
 
@@ -130,10 +130,15 @@ function removeTspan(svg: string): string {
 
 async function convertToSvg(base64: string, mimeType: string, sectionNum: number, totalSections: number): Promise<string> {
   const apiKey = process.env.ANTHROPIC_API_KEY
-  if (!apiKey) {
-    throw new Error('ANTHROPIC_API_KEY가 설정되지 않았습니다. .env.local 파일을 확인해주세요.')
+  
+  // PRODUCTION DEBUG LOG
+  console.log(`[DEBUG-AUTH] Key Check - Found: ${!!apiKey}, Length: ${apiKey?.length || 0}`);
+  
+  if (!apiKey || apiKey.trim().length === 0) {
+    throw new Error('ANTHROPIC_API_KEY가 서버 설정에 누락되었습니다. Vercel Dashboard의 Environment Variables를 확인해주세요.')
   }
-  const client = new Anthropic({ apiKey })
+  
+  const client = new Anthropic({ apiKey: apiKey.trim() })
   const response = await client.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 8192,
