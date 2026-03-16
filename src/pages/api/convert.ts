@@ -38,8 +38,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }, { onConflict: 'id' })
 
       if (upsertError) {
-        console.error('[API] Profile creation failed:', upsertError.message, upsertError.details)
-        return res.status(500).json({ error: '프로필 생성에 실패했습니다.' })
+        console.error('[API] Profile creation failed:', upsertError.message, upsertError.details, upsertError.code)
+        return res.status(500).json({ error: `프로필 생성 실패: ${upsertError.message} (${upsertError.code})` })
       }
 
       // upsert 후 다시 조회
