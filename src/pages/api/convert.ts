@@ -3,8 +3,6 @@ import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
 import { isAdmin } from '../../lib/admin'
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-
 // 서버사이드 Supabase (크레딧 차감용 - RLS 우회를 위해 SERVICE_ROLE_KEY 사용)
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 const supabase = createClient(
@@ -42,7 +40,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }, { onConflict: 'id', ignoreDuplicates: true })
         .select()
         .single()
-      
+
       if (upsertError) {
         console.error('[API] Profile creation failed:', upsertError);
         return res.status(500).json({ error: '프로필 생성에 실패했습니다.' })
@@ -128,6 +126,7 @@ function removeTspan(svg: string): string {
 }
 
 async function convertToSvg(base64: string, mimeType: string, sectionNum: number, totalSections: number): Promise<string> {
+  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
   const response = await client.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 8192,
