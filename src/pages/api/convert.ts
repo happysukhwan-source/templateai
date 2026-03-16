@@ -4,9 +4,15 @@ import { createClient } from '@supabase/supabase-js'
 import { isAdmin } from '../../lib/admin'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+
+  if (!serviceKey || !supabaseUrl) {
+    return res.status(500).json({ error: '데이터베이스 설정(SUPABASE_SERVICE_ROLE_KEY)이 누락되었습니다. .env.local 파일을 확인해주세요.' })
+  }
+
   const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    supabaseUrl,
     serviceKey,
     { auth: { autoRefreshToken: false, persistSession: false } }
   )
@@ -123,7 +129,11 @@ function removeTspan(svg: string): string {
 }
 
 async function convertToSvg(base64: string, mimeType: string, sectionNum: number, totalSections: number): Promise<string> {
-  const client = new Anthropic()
+  const apiKey = process.env.ANTHROPIC_API_KEY
+  if (!apiKey) {
+    throw new Error('ANTHROPIC_API_KEY가 설정되지 않았습니다. .env.local 파일을 확인해주세요.')
+  }
+  const client = new Anthropic({ apiKey })
   const response = await client.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 8192,
