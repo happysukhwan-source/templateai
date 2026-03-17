@@ -78,7 +78,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const finalBase64 = finalBuffer.toString('base64')
-    const svg = await convertToSvg(finalBase64, 'image/png', sectionNum || 1, totalSections || 1)
+    const svg = removeTspan(await convertToSvg(finalBase64, 'image/png', sectionNum || 1, totalSections || 1))
 
     if (!isUserAdmin) {
       if ((profile?.free_credits || 0) > 0) {
@@ -110,6 +110,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 }
 
 
+function removeTspan(svg: string): string {
+  return svg.replace(
+    /<text([^>]*)>([\s\S]*?)<\/text>/g,
+    (match, attrs, inner) => {
+      if (!inner.includes('<tspan')) return match
+      const texts: string[] = []
+      const tspanRegex = /<tspan[^>]*>([\s\S]*?)<\/tspan>/g
+      let m
+      while ((m = tspanRegex.exec(inner)) !== null) {
+        const t = m[1].trim()
+        if (t) texts.push(t)
+      }
+      if (texts.length === 0) return match
+      return `<text${attrs}>${texts.join(' ')}</text>`
+    }
+  )
+}
+
 async function convertToSvg(base64: string, mimeType: string, sectionNum: number, totalSections: number): Promise<string> {
   const apiKey = process.env.ANTHROPIC_API_KEY
 
@@ -140,13 +158,9 @@ async function convertToSvg(base64: string, mimeType: string, sectionNum: number
 1. 배경색과 레이아웃 구조를 최대한 유사하게 재현
 
 2. 텍스트 규칙 (매우 중요):
-   - 같은 폰트 크기·스타일·색상의 여러 줄 텍스트는 반드시 하나의 <text> 요소에 tspan으로 묶을 것
-   - tspan에는 x와 dy 속성만 사용 (dy="1.4em"으로 줄간격 설정)
-   - 올바른 예시 (2줄 텍스트):
-     <text x="58" y="420" font-size="13" fill="#555">
-       <tspan x="58" dy="0">첫 번째 줄</tspan>
-       <tspan x="58" dy="1.4em">두 번째 줄</tspan>
-     </text>
+   - 같은 폰트 크기·스타일·색상의 텍스트는 반드시 하나의 <text> 요소에 한 줄로 합쳐서 작성
+   - 여러 줄이라도 공백으로 이어서 하나의 text 요소로 작성 (tspan 사용 금지)
+   - 올바른 예시: <text x="58" y="420" font-size="13" fill="#555">첫 번째 줄 두 번째 줄</text>
    - 폰트 크기나 색상이 다른 텍스트는 별도 <text> 요소로 분리
 
 3. 이미지/사진 영역 규칙 (매우 중요):
