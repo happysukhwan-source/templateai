@@ -233,10 +233,13 @@ export default function ConvertPage({ session }: Props) {
                     const nextY = idx === sortedLines.length - 1 ? (imageDims?.h || 0) : sortedLines[idx + 1]
                     const heightBelow = nextY - yPx
 
-                    // 위 또는 아래 섹션이 초과이면 빨강
-                    const isRed = heightAbove > MAX_SECTION_HEIGHT || heightBelow > MAX_SECTION_HEIGHT
+                    // 위/아래 섹션 각각 독립적으로 초과 여부 판단
+                    const isAboveRed = heightAbove > MAX_SECTION_HEIGHT
+                    const isBelowRed = heightBelow > MAX_SECTION_HEIGHT
 
-                    const color = isRed ? '#ff4444' : '#22c55e'
+                    const lineColor = isAboveRed ? '#ff4444' : '#22c55e'
+                    const aboveColor = isAboveRed ? '#ff4444' : '#22c55e'
+                    const belowColor = isBelowRed ? '#ff4444' : '#22c55e'
 
                     return (
                       <div
@@ -247,15 +250,15 @@ export default function ConvertPage({ session }: Props) {
                         {/* 선 */}
                         <div style={{
                           position: 'absolute', left: 0, right: 0, top: 9, height: 2,
-                          background: color,
-                          boxShadow: `0 0 6px ${color}`,
+                          background: lineColor,
+                          boxShadow: `0 0 6px ${lineColor}`,
                           transition: 'background 0.15s, box-shadow 0.15s',
                         }} />
 
                         {/* 왼쪽: 위 섹션 높이 */}
                         <div style={{
                           position: 'absolute', left: 6, top: 1,
-                          background: color,
+                          background: aboveColor,
                           borderRadius: 4, padding: '1px 7px',
                           fontSize: 9, color: 'white', fontWeight: 700,
                           fontFamily: 'Space Mono, monospace',
@@ -270,7 +273,7 @@ export default function ConvertPage({ session }: Props) {
                         <div style={{
                           position: 'absolute', left: '50%', top: 1,
                           transform: 'translateX(-50%)',
-                          background: color,
+                          background: belowColor,
                           borderRadius: 4, padding: '1px 7px',
                           fontSize: 9, color: 'white', fontWeight: 700,
                           fontFamily: 'Space Mono, monospace',

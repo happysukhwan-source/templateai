@@ -164,6 +164,9 @@ async function convertToSvg(base64: string, mimeType: string, sectionNum: number
    - 올바른 예시: <text x="58" y="420" font-size="15" fill="#555">첫줄 둘째줄</text>
 
 3. 이미지/사진 영역 규칙 (매우 중요):
+   - 원본 이미지에서 사진/이미지가 있는 영역의 정확한 위치(x, y)와 크기(width, height)를 픽셀 단위로 측정하여 그대로 재현
+   - viewBox 기준(0 0 860 높이)에 맞게 좌표를 스케일하되, 원본 이미지 내 상대적 위치와 크기 비율을 반드시 유지
+   - 이미지 프레임이 텍스트나 다른 요소와 겹치지 않도록 원본과 동일한 레이아웃 구조 유지
    - 반드시 아래 구조로 만들것 (피그마에서 드래그 앤 드롭 가능):
    <clipPath id="img1"><rect x="X" y="Y" width="W" height="H" rx="12"/></clipPath>
    <g clip-path="url(#img1)">
@@ -174,6 +177,7 @@ async function convertToSvg(base64: string, mimeType: string, sectionNum: number
    </g>
    - image 태그 사용 금지
    - clipPath id는 img1, img2, img3... 순서로 (중복 금지)
+   - 각 이미지 프레임의 x, y, width, height는 원본에서 실측한 값을 사용 (임의로 변경 금지)
 
 4. 텍스트 편집 프레임은 점선 rect로 표시
 5. viewBox는 반드시 "0 0 860 [높이]" 형식 사용
