@@ -171,10 +171,8 @@ async function convertToSvg(base64: string, mimeType: string, sectionNum: number
    <clipPath id="img1"><rect x="X" y="Y" width="W" height="H" rx="12"/></clipPath>
    <g clip-path="url(#img1)">
      <rect x="X" y="Y" width="W" height="H" fill="#e8e4de" stroke="#bbb" stroke-width="1.5" stroke-dasharray="8,5"/>
-     <rect x="CX" y="CY" width="60" height="42" rx="8" fill="none" stroke="#aaa" stroke-width="2"/>
-     <circle cx="CX+30" cy="CY+21" r="12" fill="none" stroke="#aaa" stroke-width="2"/>
-     <text x="CX+30" y="CY+70" font-size="13" fill="#999" text-anchor="middle">이미지 영역</text>
    </g>
+   - 아이콘, 카메라 모양, "이미지 영역" 텍스트 등 내부 장식 요소 절대 추가 금지 (rect 하나만)
    - image 태그 사용 금지
    - clipPath id는 img1, img2, img3... 순서로 (중복 금지)
    - 각 이미지 프레임의 x, y, width, height는 원본에서 실측한 값을 사용 (임의로 변경 금지)
