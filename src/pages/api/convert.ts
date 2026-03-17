@@ -158,10 +158,12 @@ async function convertToSvg(base64: string, mimeType: string, sectionNum: number
 1. 배경색과 레이아웃 구조를 최대한 유사하게 재현
 
 2. 텍스트 규칙 (매우 중요):
-   - 같은 디자인 블록 안의 텍스트는 반드시 하나의 text 요소로 작성
-   - 여러 줄 텍스트도 공백으로 이어서 한 줄로 작성
+   - 같은 폰트 크기·스타일의 텍스트 블록은 같은 위치 그룹으로 묶어 표현
+   - 원본의 줄 수를 최대한 유지: 줄마다 별도 <text> 요소로 작성 (y값을 font-size*1.4 간격으로)
    - tspan 절대 사용 금지
-   - 올바른 예시: <text x="58" y="420" font-size="15" fill="#555">첫줄 둘째줄</text>
+   - 올바른 예시 (2줄 텍스트):
+     <text x="58" y="420" font-size="15" fill="#555">첫 번째 줄</text>
+     <text x="58" y="441" font-size="15" fill="#555">두 번째 줄</text>
 
 3. 이미지/사진 영역 규칙 (매우 중요):
    - 이미지 프레임 좌표 결정 방법:
