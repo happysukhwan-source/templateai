@@ -78,7 +78,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const finalBase64 = finalBuffer.toString('base64')
-    const svg = removeTspan(await convertToSvg(finalBase64, 'image/png', sectionNum || 1, totalSections || 1))
+    const svg = mergeConsecutiveTexts(removeTspan(await convertToSvg(finalBase64, 'image/png', sectionNum || 1, totalSections || 1)))
 
     if (!isUserAdmin) {
       if ((profile?.free_credits || 0) > 0) {
@@ -109,6 +109,70 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 }
 
+
+function mergeConsecutiveTexts(svg: string): string {
+  interface TextEl {
+    full: string; attrs: string; content: string
+    index: number; end: number
+    x: number; y: number; fontSize: number; fill: string; fontWeight: string
+  }
+
+  const textRegex = /<text([^>]*)>([^<]*)<\/text>/g
+  const elements: TextEl[] = []
+  let m: RegExpExecArray | null
+
+  while ((m = textRegex.exec(svg)) !== null) {
+    const attrs = m[1]
+    const content = m[2].trim()
+    if (!content) continue
+    const x = parseFloat(attrs.match(/x="([^"]+)"/)?.[1] || '0')
+    const y = parseFloat(attrs.match(/y="([^"]+)"/)?.[1] || '0')
+    const fontSize = parseFloat(attrs.match(/font-size="([^"]+)"/)?.[1] || '0')
+    const fill = attrs.match(/fill="([^"]+)"/)?.[1] || ''
+    const fontWeight = attrs.match(/font-weight="([^"]+)"/)?.[1] || 'normal'
+    elements.push({ full: m[0], attrs, content, index: m.index, end: m.index + m[0].length, x, y, fontSize, fill, fontWeight })
+  }
+
+  const groups: TextEl[][] = []
+  let currentGroup: TextEl[] = []
+
+  for (const el of elements) {
+    if (currentGroup.length === 0) { currentGroup.push(el); continue }
+    const prev = currentGroup[currentGroup.length - 1]
+    const between = svg.slice(prev.end, el.index)
+    const noElementsBetween = !/[<>]/.test(between)
+    const sameStyle =
+      Math.abs(el.x - prev.x) <= 5 &&
+      el.fontSize === prev.fontSize &&
+      el.fill === prev.fill &&
+      el.fontWeight === prev.fontWeight &&
+      el.y > prev.y &&
+      el.y - prev.y <= prev.fontSize * 2.5
+    if (sameStyle && noElementsBetween) {
+      currentGroup.push(el)
+    } else {
+      groups.push([...currentGroup])
+      currentGroup = [el]
+    }
+  }
+  if (currentGroup.length > 0) groups.push([...currentGroup])
+
+  const replacements: { start: number; end: number; replacement: string }[] = []
+  for (const group of groups) {
+    if (group.length <= 1) continue
+    const first = group[0]
+    const last = group[group.length - 1]
+    const merged = group.map(el => el.content).join(' ')
+    replacements.push({ start: first.index, end: last.end, replacement: `<text${first.attrs}>${merged}</text>` })
+  }
+
+  replacements.sort((a, b) => b.start - a.start)
+  let result = svg
+  for (const { start, end, replacement } of replacements) {
+    result = result.slice(0, start) + replacement + result.slice(end)
+  }
+  return result
+}
 
 function removeTspan(svg: string): string {
   return svg.replace(
