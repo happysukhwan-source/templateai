@@ -79,7 +79,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const finalBase64 = finalBuffer.toString('base64')
     const svg = await convertToSvg(finalBase64, 'image/png', sectionNum || 1, totalSections || 1)
-    const cleanedSvg = removeTspan(svg)
 
     if (!isUserAdmin) {
       if ((profile?.free_credits || 0) > 0) {
@@ -98,11 +97,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     await supabase.from('conversions').insert({
       user_id: userId,
       original_filename: fileName || 'unknown',
-      svg_result: cleanedSvg,
+      svg_result: svg,
       is_free: isUserAdmin ? false : (profile?.free_credits || 0) > 0,
     })
 
-    return res.status(200).json({ svg: cleanedSvg })
+    return res.status(200).json({ svg: svg })
 
   } catch (err: any) {
     console.error('Convert error:', err)
@@ -110,23 +109,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 }
 
-function removeTspan(svg: string): string {
-  return svg.replace(
-    /<text([^>]*)>([\s\S]*?)<\/text>/g,
-    (match, attrs, inner) => {
-      if (!inner.includes('<tspan')) return match
-      const texts: string[] = []
-      const tspanRegex = /<tspan[^>]*>([\s\S]*?)<\/tspan>/g
-      let m
-      while ((m = tspanRegex.exec(inner)) !== null) {
-        const t = m[1].trim()
-        if (t) texts.push(t)
-      }
-      if (texts.length === 0) return match
-      return `<text${attrs}>${texts.join(' ')}</text>`
-    }
-  )
-}
 
 async function convertToSvg(base64: string, mimeType: string, sectionNum: number, totalSections: number): Promise<string> {
   const apiKey = process.env.ANTHROPIC_API_KEY
@@ -158,12 +140,14 @@ async function convertToSvg(base64: string, mimeType: string, sectionNum: number
 1. 배경색과 레이아웃 구조를 최대한 유사하게 재현
 
 2. 텍스트 규칙 (매우 중요):
-   - 같은 폰트 크기·스타일의 텍스트 블록은 같은 위치 그룹으로 묶어 표현
-   - 원본의 줄 수를 최대한 유지: 줄마다 별도 <text> 요소로 작성 (y값을 font-size*1.4 간격으로)
-   - tspan 절대 사용 금지
+   - 같은 폰트 크기·스타일·색상의 여러 줄 텍스트는 반드시 하나의 <text> 요소에 tspan으로 묶을 것
+   - tspan에는 x와 dy 속성만 사용 (dy="1.4em"으로 줄간격 설정)
    - 올바른 예시 (2줄 텍스트):
-     <text x="58" y="420" font-size="15" fill="#555">첫 번째 줄</text>
-     <text x="58" y="441" font-size="15" fill="#555">두 번째 줄</text>
+     <text x="58" y="420" font-size="13" fill="#555">
+       <tspan x="58" dy="0">첫 번째 줄</tspan>
+       <tspan x="58" dy="1.4em">두 번째 줄</tspan>
+     </text>
+   - 폰트 크기나 색상이 다른 텍스트는 별도 <text> 요소로 분리
 
 3. 이미지/사진 영역 규칙 (매우 중요):
    - 이미지 프레임 좌표 결정 방법:
@@ -181,7 +165,11 @@ async function convertToSvg(base64: string, mimeType: string, sectionNum: number
    - image 태그 사용 금지
    - clipPath id는 img1, img2, img3... 순서로 (중복 금지)
 
-4. 텍스트 편집 프레임은 점선 rect로 표시
+4. 아이콘 규칙:
+   - 원본에 아이콘이 있는 경우 SVG 도형으로 그리지 말고 이미지 프레임(점선 rect)으로 대체
+   - 아이콘 프레임도 img1, img2... 순서에 포함하여 clipPath 구조로 작성
+
+5. 텍스트 편집 프레임은 점선 rect로 표시
 5. viewBox는 반드시 "0 0 860 [높이]" 형식 사용
 6. 한국어 폰트: font-family="'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',sans-serif"
 7. svg 태그만 출력 - 다른 설명이나 마크다운 없이
