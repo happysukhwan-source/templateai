@@ -167,6 +167,9 @@ export default function HomePage({ session }: Props) {
           <div style={{ display: 'flex', gap: 20 }}>
             <Link href="/pricing" style={{ color: '#888', textDecoration: 'none' }}>요금제</Link>
             <Link href="/convert" style={{ color: '#888', textDecoration: 'none' }}>변환하기</Link>
+            <Link href="/terms" style={{ color: '#888', textDecoration: 'none' }}>이용약관</Link>
+            <Link href="/privacy" style={{ color: '#888', textDecoration: 'none' }}>개인정보처리방침</Link>
+            <Link href="/refund" style={{ color: '#888', textDecoration: 'none' }}>환불정책</Link>
           </div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, lineHeight: 1.8 }}>
