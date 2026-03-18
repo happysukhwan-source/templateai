@@ -221,13 +221,28 @@ async function convertToSvg(base64: string, mimeType: string, sectionNum: number
 규칙:
 1. 배경색과 레이아웃 구조를 최대한 유사하게 재현
 
-2. 텍스트 규칙 (매우 중요):
+2. 섹션 그룹핑 규칙 (매우 중요 - 피그마 편집 편의를 위해):
+   - 이미지의 시각적 섹션(블록) 단위로 <g id="section-1">, <g id="section-2"> ... 로 묶을 것
+   - 각 <g> 안의 요소들은 반드시 y 좌표 오름차순(위→아래)으로 작성
+   - <g> 태그 자체도 위에서 아래 순서로 배치 (y가 작은 섹션이 먼저)
+   - 예시 구조:
+     <g id="section-1">  <!-- y: 0~200 영역 -->
+       <rect ...배경... />
+       <text ...위쪽 텍스트... />
+       <text ...아래쪽 텍스트... />
+     </g>
+     <g id="section-2">  <!-- y: 200~500 영역 -->
+       ...
+     </g>
+   - clipPath 정의(<defs>)는 svg 최상단에 모아서 작성
+
+3. 텍스트 규칙 (매우 중요):
    - 같은 폰트 크기·스타일·색상의 텍스트는 반드시 하나의 <text> 요소에 한 줄로 합쳐서 작성
    - 여러 줄이라도 공백으로 이어서 하나의 text 요소로 작성 (tspan 사용 금지)
    - 올바른 예시: <text x="58" y="420" font-size="13" fill="#555">첫 번째 줄 두 번째 줄</text>
    - 폰트 크기나 색상이 다른 텍스트는 별도 <text> 요소로 분리
 
-3. 이미지/사진 영역 규칙 (매우 중요):
+4. 이미지/사진 영역 규칙 (매우 중요):
    - 이미지 프레임 좌표 결정 방법:
      (a) 원본 이미지 전체 크기 대비 해당 사진의 위치 비율을 측정
      (b) 그 비율을 viewBox(860×높이) 기준으로 환산하여 x, y, width, height 결정
@@ -243,14 +258,14 @@ async function convertToSvg(base64: string, mimeType: string, sectionNum: number
    - image 태그 사용 금지
    - clipPath id는 img1, img2, img3... 순서로 (중복 금지)
 
-4. 아이콘 규칙:
+5. 아이콘 규칙:
    - 원본에 아이콘이 있는 경우 SVG 도형으로 그리지 말고 이미지 프레임(점선 rect)으로 대체
    - 아이콘 프레임도 img1, img2... 순서에 포함하여 clipPath 구조로 작성
 
-5. 텍스트 편집 프레임은 점선 rect로 표시
-5. viewBox는 반드시 "0 0 860 [높이]" 형식 사용
-6. 한국어 폰트: font-family="'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',sans-serif"
-7. svg 태그만 출력 - 다른 설명이나 마크다운 없이
+6. 텍스트 편집 프레임은 점선 rect로 표시
+7. viewBox는 반드시 "0 0 860 [높이]" 형식 사용
+8. 한국어 폰트: font-family="'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',sans-serif"
+9. svg 태그만 출력 - 다른 설명이나 마크다운 없이
 
 SVG 코드만 출력하세요.`
         }

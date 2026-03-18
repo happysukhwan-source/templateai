@@ -95,6 +95,12 @@ export default function Navbar() {
               borderRadius: 100, textDecoration: 'none',
               border: '1px solid var(--accent)'
             }}>충전</Link>
+            {isAdminUser && (
+              <Link href="/admin" style={{
+                fontSize: 13, fontWeight: 700, color: '#888',
+                textDecoration: 'none'
+              }}>관리자</Link>
+            )}
             <button onClick={handleLogout} style={{
               fontSize: 13, color: '#888', background: 'none',
               border: 'none', cursor: 'pointer'
