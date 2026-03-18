@@ -159,14 +159,28 @@ export default function HomePage({ session }: Props) {
       </section>
 
       {/* ── FOOTER ── */}
-      <footer style={{ padding: '32px 48px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13, color: '#888', flexWrap: 'wrap', gap: 12 }}>
-        <span style={{ fontFamily: 'Space Mono, monospace', fontWeight: 700, fontSize: 14 }}>
-          template<span style={{ color: 'var(--accent)' }}>AI</span>
-        </span>
-        <span>© 2025 templateAI · 스마트스토어 셀러를 위한 디자인 자동화</span>
-        <div style={{ display: 'flex', gap: 20 }}>
-          <Link href="/pricing" style={{ color: '#888', textDecoration: 'none' }}>요금제</Link>
-          <Link href="/convert" style={{ color: '#888', textDecoration: 'none' }}>변환하기</Link>
+      <footer style={{ padding: '40px 48px', borderTop: '1px solid var(--border)', background: '#faf9f6', fontSize: 12, color: '#999' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 24, marginBottom: 24 }}>
+          <span style={{ fontFamily: 'Space Mono, monospace', fontWeight: 700, fontSize: 15, color: 'var(--dark)' }}>
+            template<span style={{ color: 'var(--accent)' }}>AI</span>
+          </span>
+          <div style={{ display: 'flex', gap: 20 }}>
+            <Link href="/pricing" style={{ color: '#888', textDecoration: 'none' }}>요금제</Link>
+            <Link href="/convert" style={{ color: '#888', textDecoration: 'none' }}>변환하기</Link>
+          </div>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, lineHeight: 1.8 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 24px' }}>
+            <span>상호명: 배러댄</span>
+            <span>대표자: 장석환</span>
+            <span>사업자등록번호: 594-17-00968</span>
+            <span>통신판매업 신고번호: 제 2022-진건퇴계원-51호</span>
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 24px' }}>
+            <span>주소: 경기도 남양주시 진건읍 양진로 371-8</span>
+            <span>고객센터: <a href="mailto:bodywick@naver.com" style={{ color: '#999', textDecoration: 'none' }}>bodywick@naver.com</a></span>
+          </div>
+          <span style={{ marginTop: 8 }}>© 2025 templateAI · All rights reserved.</span>
         </div>
       </footer>
 
