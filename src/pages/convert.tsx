@@ -202,6 +202,9 @@ export default function ConvertPage({ session }: Props) {
                 <p style={{ fontWeight: 700, marginBottom: 8 }}>PNG 파일을 드래그하거나 클릭해서 업로드</p>
                 <p style={{ fontSize: 13, color: '#999' }}>PNG, JPG · 최대 30MB · 권장 가로 860px</p>
                 <p style={{ fontSize: 12, color: '#bbb', marginTop: 6 }}>세로 1800px 초과 시 분할선을 추가해주세요</p>
+                <p style={{ fontSize: 12, color: '#f0a070', marginTop: 8, background: '#fff5f0', padding: '6px 14px', borderRadius: 8 }}>
+                  💡 1800px 미만 한 장씩 변환 시 품질이 가장 좋아요
+                </p>
               </div>
             ) : (
               <div className="card" style={{ padding: 16 }}>
