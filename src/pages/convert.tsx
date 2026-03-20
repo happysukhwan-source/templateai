@@ -111,11 +111,11 @@ export default function ConvertPage({ session }: Props) {
     setStatus('converting'); setErrorMsg(''); setResults([])
     try {
       const isUserAdmin = isAdmin(session.user.email)
-      
+
       // 1. 프론트엔드 크레딧 체크 (사용자 경험용)
       const { data: profile } = await supabase
         .from('profiles').select('free_credits, paid_credits').eq('id', session.user.id).single()
-      
+
       // 프로필이 없거나 RLS로 인해 못 읽어오는 경우에도 일단 진행 (서버에서 최종 체크함)
       if (profile) {
         const totalCredits = (profile?.free_credits || 0) + (profile?.paid_credits || 0)
@@ -124,19 +124,23 @@ export default function ConvertPage({ session }: Props) {
           setStatus('error'); return
         }
       }
-      const base64 = await fileToBase64(file)
       const svgs: string[] = []
       for (let i = 0; i < sections.length; i++) {
+        // 각 섹션을 프론트엔드에서 미리 크롭해서 전송 (전체 이미지 반복 전송 방지)
+        const croppedBase64 = await cropImageToBase64(file, sections[i].y1, sections[i].y2)
         const res = await fetch('/api/convert', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            imageData: base64, mimeType: file.type, userId: session.user.id, userEmail: session.user.email,
-            fileName: file.name, cropY1: sections[i].y1, cropY2: sections[i].y2,
-            sectionNum: i + 1, totalSections: sections.length,
+            imageData: croppedBase64, mimeType: 'image/png', userId: session.user.id, userEmail: session.user.email,
+            fileName: file.name, sectionNum: i + 1, totalSections: sections.length,
           }),
         })
-        const data = await res.json()
+        const text = await res.text()
+        let data: any = {}
+        try { data = JSON.parse(text) } catch {
+          throw new Error(`섹션 ${i + 1} 변환 실패: ${text || res.statusText}`)
+        }
         if (!res.ok) throw new Error(data.error || `섹션 ${i + 1} 변환 실패`)
         svgs.push(data.svg)
       }
@@ -161,6 +165,25 @@ export default function ConvertPage({ session }: Props) {
       reader.onload = () => resolve((reader.result as string).split(',')[1])
       reader.onerror = reject
       reader.readAsDataURL(file)
+    })
+  }
+
+  function cropImageToBase64(file: File, y1: number, y2: number): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file)
+      const img = new Image()
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        canvas.width = img.naturalWidth
+        canvas.height = y2 - y1
+        const ctx = canvas.getContext('2d')!
+        ctx.drawImage(img, 0, y1, img.naturalWidth, y2 - y1, 0, 0, img.naturalWidth, y2 - y1)
+        URL.revokeObjectURL(url)
+        const dataUrl = canvas.toDataURL('image/png')
+        resolve(dataUrl.split(',')[1])
+      }
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('이미지 크롭 실패')) }
+      img.src = url
     })
   }
 

@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git filter-repo:*)"
+      "Bash(git filter-repo:*)",
+      "Bash(claude config:*)",
+      "Bash(claude logout:*)"
     ]
   }
 }
