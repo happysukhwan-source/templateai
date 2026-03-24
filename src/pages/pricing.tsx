@@ -110,7 +110,7 @@ export default function PricingPage({ session }: Props) {
                   `크레딧 ${plan.credits}장`,
                   '피그마 SVG 출력',
                   '분할 변환 지원',
-                  '유효기간 없음',
+                  '유효기간 3개월',
                 ].map((f, i) => (
                   <li key={i} style={{ fontSize: 14, padding: '6px 0', display: 'flex', alignItems: 'center', gap: 8, color: plan.badge === '인기' ? '#ccc' : '#555', borderBottom: i < 3 ? '1px solid #f0f0f0' : 'none' }}>
                     <span style={{ color: '#22c55e', fontSize: 12 }}>✓</span>{f}
