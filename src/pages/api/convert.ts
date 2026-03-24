@@ -2,8 +2,11 @@ import type { NextApiRequest, NextApiResponse } from 'next'
 import { Anthropic } from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
 import { isAdmin } from '../../lib/admin'
+import { getAuthUser } from '../../lib/auth'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
+
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 
@@ -11,15 +14,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(500).json({ error: '데이터베이스 설정(SUPABASE_SERVICE_ROLE_KEY)이 누락되었습니다. .env.local 파일을 확인해주세요.' })
   }
 
+  // 서버에서 토큰으로 유저 검증 (클라이언트 body의 userId/userEmail 미사용)
+  const user = await getAuthUser(req)
+  if (!user) return res.status(401).json({ error: '로그인이 필요해요' })
+
+  const userId = user.id
+  const userEmail = user.email
+
   const supabase = createClient(
     supabaseUrl,
     serviceKey,
     { auth: { autoRefreshToken: false, persistSession: false } }
   )
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
-  const { imageData, mimeType, userId, userEmail, fileName, cropY1, cropY2, sectionNum, totalSections } = req.body
-  if (!imageData || !userId) return res.status(400).json({ error: '필수 값이 없어요' })
+  const { imageData, fileName, cropY1, cropY2, sectionNum, totalSections } = req.body
+  if (!imageData) return res.status(400).json({ error: '필수 값이 없어요' })
 
   try {
     const isUserAdmin = isAdmin(userEmail)
@@ -31,7 +40,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .single()
 
     if (profileError || !profile) {
-      // upsert (ignoreDuplicates 제거)
       const { error: upsertError } = await supabase
         .from('profiles')
         .upsert({
@@ -46,7 +54,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(500).json({ error: `프로필 생성 실패: ${upsertError.message} (${upsertError.code})` })
       }
 
-      // upsert 후 다시 조회
       const { data: fetchedProfile } = await supabase
         .from('profiles')
         .select('free_credits, paid_credits')
@@ -56,16 +63,45 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       profile = fetchedProfile
     }
 
-    const totalCredits = (profile?.free_credits || 0) + (profile?.paid_credits || 0)
+    const freeCredits = profile?.free_credits || 0
+    const paidCredits = profile?.paid_credits || 0
+    const totalCredits = freeCredits + paidCredits
 
     if (!isUserAdmin && totalCredits <= 0) {
       return res.status(400).json({ error: '크레딧이 부족해요. 충전 후 이용해주세요.' })
     }
 
+    // AI 호출 전에 크레딧 먼저 차감 (race condition 방지, optimistic locking)
+    let usedFree = false
+    if (!isUserAdmin) {
+      if (freeCredits > 0) {
+        const { data: deducted } = await supabase
+          .from('profiles')
+          .update({ free_credits: freeCredits - 1 })
+          .eq('id', userId)
+          .eq('free_credits', freeCredits)  // 동시 요청 방어
+          .select('id')
+        if (!deducted || deducted.length === 0) {
+          return res.status(400).json({ error: '크레딧이 부족해요. 충전 후 이용해주세요.' })
+        }
+        usedFree = true
+      } else {
+        const { data: deducted } = await supabase
+          .from('profiles')
+          .update({ paid_credits: paidCredits - 1 })
+          .eq('id', userId)
+          .eq('paid_credits', paidCredits)  // 동시 요청 방어
+          .select('id')
+        if (!deducted || deducted.length === 0) {
+          return res.status(400).json({ error: '크레딧이 부족해요. 충전 후 이용해주세요.' })
+        }
+      }
+    }
+
     const imageBuffer = Buffer.from(imageData, 'base64')
     const sharp = require('sharp')
     const metadata = await sharp(imageBuffer).metadata()
-    const { width = 860, height = 800 } = metadata
+    const { width = 860 } = metadata
 
     let finalBuffer = imageBuffer
 
@@ -77,31 +113,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         .toBuffer()
     }
 
-    const finalBase64 = finalBuffer.toString('base64')
-    const svg = mergeConsecutiveTexts(removeTspan(await convertToSvg(finalBase64, 'image/png', sectionNum || 1, totalSections || 1)))
-
-    if (!isUserAdmin) {
-      if ((profile?.free_credits || 0) > 0) {
-        await supabase
-          .from('profiles')
-          .update({ free_credits: profile!.free_credits - 1 })
-          .eq('id', userId)
-      } else {
-        await supabase
-          .from('profiles')
-          .update({ paid_credits: profile!.paid_credits - 1 })
-          .eq('id', userId)
+    let svg: string
+    try {
+      const finalBase64 = finalBuffer.toString('base64')
+      svg = mergeConsecutiveTexts(removeTspan(await convertToSvg(finalBase64, 'image/png', sectionNum || 1, totalSections || 1)))
+    } catch (err) {
+      // AI 호출 실패 시 크레딧 복구
+      if (!isUserAdmin) {
+        if (usedFree) {
+          await supabase.from('profiles').update({ free_credits: freeCredits }).eq('id', userId)
+        } else {
+          await supabase.from('profiles').update({ paid_credits: paidCredits }).eq('id', userId)
+        }
       }
+      throw err
     }
 
     await supabase.from('conversions').insert({
       user_id: userId,
       original_filename: fileName || 'unknown',
       svg_result: svg,
-      is_free: isUserAdmin ? false : (profile?.free_credits || 0) > 0,
+      is_free: isUserAdmin ? false : usedFree,
     })
 
-    return res.status(200).json({ svg: svg })
+    return res.status(200).json({ svg })
 
   } catch (err: any) {
     console.error('Convert error:', err)
@@ -195,7 +230,6 @@ function removeTspan(svg: string): string {
 async function convertToSvg(base64: string, mimeType: string, sectionNum: number, totalSections: number): Promise<string> {
   const apiKey = process.env.ANTHROPIC_API_KEY
 
-  // PRODUCTION DEBUG LOG
   console.log(`[DEBUG-AUTH] Key Check - Found: ${!!apiKey}, Length: ${apiKey?.length || 0}`);
 
   if (!apiKey || apiKey.trim().length === 0) {

@@ -49,8 +49,7 @@ export default function PricingPage({ session }: Props) {
           body: JSON.stringify({
             paymentId: orderId,
             planId: plan.id,
-            credits: plan.credits,
-            amount: plan.price,
+            // credits와 amount는 서버에서 planId 기준으로 계산
           }),
         })
         const verifyData = await verifyRes.json()

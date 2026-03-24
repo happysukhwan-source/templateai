@@ -47,7 +47,9 @@ export default function AdminPage({ session }: Props) {
 
   async function fetchData() {
     setLoading(true)
-    const res = await fetch(`/api/admin/data?userEmail=${session?.user.email}`)
+    const res = await fetch('/api/admin/data', {
+      headers: { 'Authorization': `Bearer ${session?.access_token}` },
+    })
     const data = await res.json()
     setProfiles(data.profiles || [])
     setPayments(data.payments || [])
@@ -62,8 +64,11 @@ export default function AdminPage({ session }: Props) {
     const paidDelta = parseInt(input.paid || '0')
     const res = await fetch('/api/admin/credits', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userEmail: session?.user.email, targetUserId: userId, freeDelta, paidDelta }),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session?.access_token}`,
+      },
+      body: JSON.stringify({ targetUserId: userId, freeDelta, paidDelta }),
     })
     const data = await res.json()
     if (res.ok) {

@@ -130,9 +130,12 @@ export default function ConvertPage({ session }: Props) {
         const croppedBase64 = await cropImageToBase64(file, sections[i].y1, sections[i].y2)
         const res = await fetch('/api/convert', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
           body: JSON.stringify({
-            imageData: croppedBase64, mimeType: 'image/png', userId: session.user.id, userEmail: session.user.email,
+            imageData: croppedBase64, mimeType: 'image/png',
             fileName: file.name, sectionNum: i + 1, totalSections: sections.length,
           }),
         })

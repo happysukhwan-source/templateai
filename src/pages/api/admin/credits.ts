@@ -1,12 +1,16 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { createClient } from '@supabase/supabase-js'
 import { isAdmin } from '../../../lib/admin'
+import { getAuthUser } from '../../../lib/auth'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).end()
 
-  const { userEmail, targetUserId, freeDelta, paidDelta } = req.body
-  if (!isAdmin(userEmail)) return res.status(403).json({ error: '접근 권한이 없습니다.' })
+  const user = await getAuthUser(req)
+  if (!user) return res.status(401).json({ error: '인증이 필요합니다.' })
+  if (!isAdmin(user.email)) return res.status(403).json({ error: '접근 권한이 없습니다.' })
+
+  const { targetUserId, freeDelta, paidDelta } = req.body
 
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
