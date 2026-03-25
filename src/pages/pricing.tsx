@@ -106,7 +106,7 @@ export default function PricingPage({ session }: Props) {
 
               <ul style={{ listStyle: 'none', padding: 0, marginBottom: 28, textAlign: 'left' }}>
                 {[
-                  `크레딧 ${plan.credits}장`,
+                  `이용권 ${plan.credits}장`,
                   '피그마 SVG 출력',
                   '분할 변환 지원',
                   '유효기간 3개월',

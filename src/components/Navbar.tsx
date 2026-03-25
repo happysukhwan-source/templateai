@@ -94,7 +94,7 @@ export default function Navbar() {
               background: 'transparent', padding: '10px 20px',
               borderRadius: 100, textDecoration: 'none',
               border: '1px solid var(--accent)'
-            }}>충전</Link>
+            }}>이용요금</Link>
             {isAdminUser && (
               <Link href="/admin" style={{
                 fontSize: 13, fontWeight: 700, color: '#888',
