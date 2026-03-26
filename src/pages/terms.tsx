@@ -71,7 +71,7 @@ export default function TermsPage({ session }: Props) {
 
         <div style={{ marginTop: 48, padding: '24px 0', borderTop: '1px solid var(--border)', fontSize: 13, color: '#999' }}>
           상호명: 배러댄 &nbsp;|&nbsp; 대표자: 장석환 &nbsp;|&nbsp; 사업자등록번호: 594-17-00968<br />
-          주소: 경기도 남양주시 진건읍 양진로 371-8 &nbsp;|&nbsp; 고객센터: bodywick@naver.com
+          주소: 경기도 남양주시 진건읍 양진로 375-81 &nbsp;|&nbsp; 고객센터: bodywick@naver.com
         </div>
       </div>
     </div>

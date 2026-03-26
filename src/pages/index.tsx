@@ -180,7 +180,7 @@ export default function HomePage({ session }: Props) {
             <span>통신판매업 신고번호: 제 2022-진건퇴계원-51호</span>
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 24px' }}>
-            <span>주소: 경기도 남양주시 진건읍 양진로 371-8</span>
+            <span>주소: 경기도 남양주시 진건읍 양진로 375-81</span>
             <span>고객센터: <a href="tel:01067323121" style={{ color: '#999', textDecoration: 'none' }}>010-6732-3121</a></span>
             <span>이메일: <a href="mailto:bodywick@naver.com" style={{ color: '#999', textDecoration: 'none' }}>bodywick@naver.com</a></span>
           </div>
