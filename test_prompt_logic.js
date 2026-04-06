@@ -1,12 +1,15 @@
-
-import Anthropic from '@anthropic-ai/sdk';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import * as dotenv from 'dotenv';
 import path from 'path';
 
 // .env.local 파일 로드
 dotenv.config({ path: path.resolve('e:/Antigravity/templateai_v2/templateai/.env.local') });
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const apiKey = process.env.GEMINI_API_KEY;
+if (!apiKey) {
+    console.warn("GEMINI_API_KEY가 없습니다. 설정을 확인해주세요.");
+}
+const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
 
 async function testPrompt() {
   console.log('Testing prompt with text block merging rule...');

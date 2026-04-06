@@ -1,0 +1,94 @@
+<svg width="800" height="1000" viewBox="0 0 800 1000" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- 공통 스타일 정의 -->
+    <style>
+      .bg { fill: #f2f2f2; }
+      .title { font-family: 'Pretendard', 'Inter', sans-serif; font-size: 42px; font-weight: 800; fill: #111111; text-anchor: middle; }
+      .subtitle { font-family: 'Pretendard', 'Inter', sans-serif; font-size: 18px; font-weight: 400; fill: #333333; text-anchor: middle; }
+      
+      .placeholder-bg { fill: #e5e5e5; stroke: #a3a3a3; stroke-width: 2px; stroke-dasharray: 6 4; }
+      .placeholder-icon { font-size: 24px; text-anchor: middle; }
+      
+      .label-bg { fill: #000000; }
+      .label-text { font-family: 'Montserrat', 'Inter', sans-serif; font-size: 13px; font-weight: 700; fill: #ffffff; text-anchor: middle; letter-spacing: 1.5px; }
+    </style>
+  </defs>
+
+  <!-- 1. 전체 배경 -->
+  <rect class="bg" width="800" height="1000" />
+
+  <!-- 2. 타이틀 텍스트 영역 (최적화 모듈 적용: <tspan> 활용하여 하나의 텍스트 그룹으로 묶음) -->
+  <g id="text-section" transform="translate(400, 100)">
+    <text class="title" x="0" y="0">Options</text>
+    <text class="subtitle" x="0" y="50">
+      <tspan x="0" dy="0">라라나 가구의 가구 전문가가 직접 제작한</tspan>
+      <tspan x="0" dy="28">여섯가지의 다양한 의자를 만나 보세요.</tspan>
+    </text>
+  </g>
+
+  <!-- 3. 이미지 그리드 영역 -->
+  <g id="image-grid" transform="translate(60, 220)">
+    
+    <!-- 옵션 01 -->
+    <g id="option-01" transform="translate(0, 0)">
+      <rect class="placeholder-bg" width="320" height="220" rx="4" />
+      <text class="placeholder-icon" x="160" y="110">📷</text>
+      <!-- 라벨 -->
+      <g transform="translate(15, 15)">
+        <rect class="label-bg" width="100" height="28" rx="2" />
+        <text class="label-text" x="50" y="19">OPTION 01</text>
+      </g>
+    </g>
+
+    <!-- 옵션 02 -->
+    <g id="option-02" transform="translate(360, 0)">
+      <rect class="placeholder-bg" width="320" height="220" rx="4" />
+      <text class="placeholder-icon" x="160" y="110">📷</text>
+      <g transform="translate(15, 15)">
+        <rect class="label-bg" width="100" height="28" rx="2" />
+        <text class="label-text" x="50" y="19">OPTION 02</text>
+      </g>
+    </g>
+
+    <!-- 옵션 03 -->
+    <g id="option-03" transform="translate(0, 250)">
+      <rect class="placeholder-bg" width="320" height="220" rx="4" />
+      <text class="placeholder-icon" x="160" y="110">📷</text>
+      <g transform="translate(15, 15)">
+        <rect class="label-bg" width="100" height="28" rx="2" />
+        <text class="label-text" x="50" y="19">OPTION 03</text>
+      </g>
+    </g>
+
+    <!-- 옵션 04 -->
+    <g id="option-04" transform="translate(360, 250)">
+      <rect class="placeholder-bg" width="320" height="220" rx="4" />
+      <text class="placeholder-icon" x="160" y="110">📷</text>
+      <g transform="translate(15, 15)">
+        <rect class="label-bg" width="100" height="28" rx="2" />
+        <text class="label-text" x="50" y="19">OPTION 04</text>
+      </g>
+    </g>
+
+    <!-- 옵션 05 -->
+    <g id="option-05" transform="translate(0, 500)">
+      <rect class="placeholder-bg" width="320" height="220" rx="4" />
+      <text class="placeholder-icon" x="160" y="110">📷</text>
+      <g transform="translate(15, 15)">
+        <rect class="label-bg" width="100" height="28" rx="2" />
+        <text class="label-text" x="50" y="19">OPTION 05</text>
+      </g>
+    </g>
+
+    <!-- 옵션 06 -->
+    <g id="option-06" transform="translate(360, 500)">
+      <rect class="placeholder-bg" width="320" height="220" rx="4" />
+      <text class="placeholder-icon" x="160" y="110">📷</text>
+      <g transform="translate(15, 15)">
+        <rect class="label-bg" width="100" height="28" rx="2" />
+        <text class="label-text" x="50" y="19">OPTION 06</text>
+      </g>
+    </g>
+
+  </g>
+</svg>
