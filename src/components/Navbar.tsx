@@ -63,13 +63,14 @@ export default function Navbar() {
 
     if (data) setCredits((data.free_credits || 0) + (data.paid_credits || 0))
 
-    // 유료 크레딧이 있으면 가장 최근 결제의 만료일 조회
+    // 유료 크레딧이 있으면 가장 가까운 만료일 조회
     if (data?.paid_credits > 0) {
       const { data: payment } = await supabase
         .from('payments')
         .select('expires_at')
         .eq('user_id', userId)
-        .order('expires_at', { ascending: false })
+        .gt('expires_at', new Date().toISOString())
+        .order('expires_at', { ascending: true })
         .limit(1)
         .single()
       if (payment?.expires_at) {

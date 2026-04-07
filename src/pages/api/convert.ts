@@ -52,7 +52,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const freeCredits = profile?.free_credits || 0
-    const paidCredits = profile?.paid_credits || 0
+    let paidCredits = profile?.paid_credits || 0
+
+    // 만료된 유료 크레딧 처리
+    if (!isUserAdmin && paidCredits > 0) {
+      const now = new Date().toISOString()
+      const { data: expiredPayments } = await supabase
+        .from('payments')
+        .select('credits_added')
+        .eq('user_id', userId)
+        .lt('expires_at', now)
+
+      if (expiredPayments && expiredPayments.length > 0) {
+        const expiredCredits = expiredPayments.reduce((sum: number, p: any) => sum + p.credits_added, 0)
+        const deductExpired = Math.min(paidCredits, expiredCredits)
+        if (deductExpired > 0) {
+          paidCredits = paidCredits - deductExpired
+          await supabase.from('profiles').update({ paid_credits: paidCredits }).eq('id', userId)
+          await supabase.from('payments').delete().eq('user_id', userId).lt('expires_at', now)
+        }
+      }
+    }
+
     const totalCredits = freeCredits + paidCredits
 
     // 3. 권한 및 잔액 체크
