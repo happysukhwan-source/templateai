@@ -31,6 +31,7 @@ export default function AdminPage({ session }: Props) {
   const [sessionReady, setSessionReady] = useState(false)
   const [creditInput, setCreditInput] = useState<{ [id: string]: { free: string; paid: string } }>({})
   const [saving, setSaving] = useState<string | null>(null)
+  const [cancelling, setCancelling] = useState<string | null>(null)
   const [search, setSearch] = useState('')
 
   useEffect(() => {
@@ -93,6 +94,27 @@ export default function AdminPage({ session }: Props) {
   const totalRevenue = payments.reduce((sum, p) => sum + p.amount, 0)
 
   const filteredProfiles = profiles.filter(p => p.email?.includes(search))
+
+  async function cancelPayment(orderId: string) {
+    if (!confirm('정말 취소하시겠습니까? 크레딧이 차감되고 환불 처리됩니다.')) return
+    setCancelling(orderId)
+    const res = await fetch('/api/admin/cancel', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session?.access_token}`,
+      },
+      body: JSON.stringify({ orderId }),
+    })
+    const data = await res.json()
+    if (res.ok) {
+      setPayments(prev => prev.filter(p => p.order_id !== orderId))
+      alert('취소 완료')
+    } else {
+      alert(`취소 실패: ${data.error}`)
+    }
+    setCancelling(null)
+  }
 
   const emailMap: { [id: string]: string } = {}
   profiles.forEach(p => { emailMap[p.id] = p.email })
@@ -160,11 +182,12 @@ export default function AdminPage({ session }: Props) {
                   <th style={{ padding: '12px 20px', textAlign: 'left', fontWeight: 700 }}>만료일</th>
                   <th style={{ padding: '12px 20px', textAlign: 'right', fontWeight: 700 }}>금액</th>
                   <th style={{ padding: '12px 20px', textAlign: 'right', fontWeight: 700 }}>크레딧</th>
+                  <th style={{ padding: '12px 20px', textAlign: 'center', fontWeight: 700 }}>취소</th>
                 </tr>
               </thead>
               <tbody>
                 {payments.length === 0 && (
-                  <tr><td colSpan={5} style={{ padding: 24, textAlign: 'center', color: '#aaa' }}>결제 내역 없음</td></tr>
+                  <tr><td colSpan={6} style={{ padding: 24, textAlign: 'center', color: '#aaa' }}>결제 내역 없음</td></tr>
                 )}
                 {payments.map((p, i) => (
                     <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
@@ -173,6 +196,15 @@ export default function AdminPage({ session }: Props) {
                       <td style={{ padding: '12px 20px', color: '#e67e22', fontWeight: 700 }}>{p.expires_at ? p.expires_at.slice(0, 10) : '-'}</td>
                       <td style={{ padding: '12px 20px', textAlign: 'right', fontWeight: 700 }}>₩{p.amount.toLocaleString()}</td>
                       <td style={{ padding: '12px 20px', textAlign: 'right', color: 'var(--accent)', fontWeight: 700 }}>+{p.credits_added}장</td>
+                      <td style={{ padding: '12px 20px', textAlign: 'center' }}>
+                        <button
+                          onClick={() => cancelPayment(p.order_id)}
+                          disabled={cancelling === p.order_id}
+                          style={{ padding: '4px 12px', background: '#ef4444', color: 'white', border: 'none', borderRadius: 6, fontSize: 12, cursor: 'pointer', fontWeight: 700 }}
+                        >
+                          {cancelling === p.order_id ? '취소 중...' : '취소'}
+                        </button>
+                      </td>
                     </tr>
                 ))}
               </tbody>
