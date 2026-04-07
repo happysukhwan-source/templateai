@@ -18,7 +18,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     auth: { autoRefreshToken: false, persistSession: false },
   })
 
-  const { imageData, fileName, sectionNum, totalSections } = req.body
+  const { imageData, fileName, sectionNum, totalSections, originalHeight: clientHeight } = req.body
   if (!imageData) return res.status(400).json({ error: '이미지 데이터가 없어요' })
 
   try {
@@ -31,7 +31,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const { height = 0 } = metadata
 
     // 2. 필요 크레딧 계산
-    const requiredCredits = height >= 5000 ? 2 : 1
+    const activeHeight = clientHeight || height
+    const requiredCredits = activeHeight >= 5000 ? 2 : 1
 
     let { data: profile } = await supabase.from('profiles').select('free_credits, paid_credits').eq('id', user.id).single()
     if (!profile) {

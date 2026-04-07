@@ -24,7 +24,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     auth: { autoRefreshToken: false, persistSession: false }
   })
 
-  const { imageData, fileName, cropY1, cropY2, sectionNum, totalSections } = req.body
+  const { imageData, fileName, cropY1, cropY2, sectionNum, totalSections, originalHeight: clientHeight } = req.body
   if (!imageData) return res.status(400).json({ error: '필수 값이 없어요' })
 
   try {
@@ -36,8 +36,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const metadata = await sharp(imageBuffer).metadata()
     const { width = 860, height = 0 } = metadata
 
-    // 2. 필요 크레딧 계산 (5000px 이상 2크레딧)
-    const requiredCredits = height >= 5000 ? 2 : 1
+    // 2. 필요 크레딧 계산 (클라이언트에서 보낸 실제 원본 높이 우선)
+    const activeHeight = clientHeight || height
+    const requiredCredits = activeHeight >= 5000 ? 2 : 1
 
     let { data: profile, error: profileError } = await supabase
       .from('profiles').select('free_credits, paid_credits').eq('id', userId).single()

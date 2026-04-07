@@ -27,21 +27,39 @@ export default function ConvertPage({ session }: Props) {
   const requiredCredits = imageDims && imageDims.h >= 5000 ? 2 : 1
   const canConvert = !!file && !hasOverflow && status !== 'converting'
 
-  const fileToBase64 = (f: File): Promise<string> => {
+  const compressImage = (f: File): Promise<string> => {
     return new Promise((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onload = () => {
-        const result = reader.result as string
-        resolve(result.split(',')[1])
+      const img = new Image()
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        const MAX_WIDTH = 1000 // Vercel 전송 제한(4.5MB)을 위해 가로폭 최적화
+        let width = img.naturalWidth
+        let height = img.naturalHeight
+
+        if (width > MAX_WIDTH) {
+          height = (MAX_WIDTH / width) * height
+          width = MAX_WIDTH
+        }
+
+        canvas.width = width
+        canvas.height = height
+        const ctx = canvas.getContext('2d')
+        if (!ctx) return reject('Canvas context error')
+        ctx.drawImage(img, 0, 0, width, height)
+        
+        // JPEG 압축 (퀄리티 0.8)로 용량을 획기적으로 줄임
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.8)
+        resolve(dataUrl.split(',')[1])
+        URL.revokeObjectURL(img.src)
       }
-      reader.onerror = error => reject(error)
-      reader.readAsDataURL(f)
+      img.onerror = () => reject('이미지 로드 실패')
+      img.src = URL.createObjectURL(f)
     })
   }
 
   const handleFile = useCallback((f: File) => {
     if (!f.type.startsWith('image/')) { setErrorMsg('이미지 파일만 업로드 가능해요.'); return }
-    if (f.size > 30 * 1024 * 1024) { setErrorMsg('파일 크기는 30MB 이하여야 해요.'); return }
+    if (f.size > 50 * 1024 * 1024) { setErrorMsg('파일 크기는 50MB 이하여야 해요.'); return }
     setFile(f); setErrorMsg(''); setResultSvg(''); setStatus('idle')
     const url = URL.createObjectURL(f)
     setImageUrl(url)
@@ -74,7 +92,9 @@ export default function ConvertPage({ session }: Props) {
       }
 
       const apiEndpoint = mode === 'template' ? '/api/template-convert' : '/api/convert'
-      const base64 = await fileToBase64(file)
+      
+      // 이미지 압축 및 리사이징 (Vercel 4.5MB 제한 우회)
+      const base64 = await compressImage(file)
       
       const res = await fetch(apiEndpoint, {
         method: 'POST',
@@ -83,8 +103,9 @@ export default function ConvertPage({ session }: Props) {
           'Authorization': `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
-          imageData: base64, mimeType: file.type || 'image/png',
-          fileName: file.name
+          imageData: base64, mimeType: 'image/jpeg',
+          fileName: file.name,
+          originalHeight: imageDims?.h
         }),
       })
       
@@ -228,7 +249,7 @@ export default function ConvertPage({ session }: Props) {
               onClick={handleConvert}
             >
               {status === 'converting'
-                ? <><span className="spinner" style={{ marginRight: 8 }} />전체 변환 중 (최대 1~2분 소요)...</>
+                ? <><span className="spinner" style={{ marginRight: 8 }} />이미지 최적화 및 변환 중 (최대 1~2분 소요)...</>
                 : !file ? '이미지를 먼저 업로드해주세요'
                   : hasOverflow ? '🔴 이미지 길이가 너무 깁니다'
                     : `✨ 통째로 SVG 변환하기`}
