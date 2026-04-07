@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Navbar from '../components/Navbar'
 import type { Session } from '@supabase/supabase-js'
 import Link from 'next/link'
+import { supabase } from '../lib/supabase'
 
 interface Props { session: Session | null }
 
@@ -15,22 +16,36 @@ export default function PricingPage({ session }: Props) {
   const [loading, setLoading] = useState<string | null>(null)
   const [pendingPlan, setPendingPlan] = useState<typeof PLANS[0] | null>(null)
   const [phone, setPhone] = useState('')
+  const [name, setName] = useState('')
   const [phoneError, setPhoneError] = useState('')
+  const [nameError, setNameError] = useState('')
+
+  useEffect(() => {
+    if (!session) return
+    supabase
+      .from('profiles')
+      .select('name, phone')
+      .eq('id', session.user.id)
+      .single()
+      .then(({ data }) => {
+        if (data?.phone) setPhone(data.phone)
+        if (data?.name) setName(data.name)
+      })
+  }, [session])
 
   function openPhoneModal(plan: typeof PLANS[0]) {
     if (!session) { window.location.href = '/signup'; return }
-    setPhone('')
     setPhoneError('')
+    setNameError('')
     setPendingPlan(plan)
   }
 
   async function confirmPayment() {
+    let valid = true
+    if (!name.trim()) { setNameError('이름을 입력해주세요.'); valid = false }
     const phoneClean = phone.replace(/[^0-9]/g, '')
-    if (phoneClean.length < 10) {
-      setPhoneError('올바른 휴대폰 번호를 입력해주세요.')
-      return
-    }
-    if (!pendingPlan) return
+    if (phoneClean.length < 10) { setPhoneError('올바른 휴대폰 번호를 입력해주세요.'); valid = false }
+    if (!valid || !pendingPlan) return
 
     const plan = pendingPlan
     setPendingPlan(null)
@@ -50,6 +65,7 @@ export default function PricingPage({ session }: Props) {
         payMethod: 'CARD',
         customer: {
           customerId: session!.user.id,
+          fullName: name.trim(),
           email: session!.user.email,
           phoneNumber: phoneClean,
         },
@@ -79,40 +95,53 @@ export default function PricingPage({ session }: Props) {
     setLoading(null)
   }
 
+  const inputStyle = {
+    width: '100%', padding: '12px 14px', borderRadius: 10, fontSize: 15,
+    border: '1.5px solid var(--border)', outline: 'none',
+    boxSizing: 'border-box' as const, fontFamily: 'inherit',
+  }
+
   return (
     <div style={{ minHeight: '100vh', background: 'var(--cream)' }}>
       <Navbar />
 
-      {/* 휴대폰 번호 입력 모달 */}
+      {/* 결제 정보 확인 모달 */}
       {pendingPlan && (
         <div style={{
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
         }}>
           <div style={{
-            background: 'white', borderRadius: 20, padding: '40px 36px', width: 360,
+            background: 'white', borderRadius: 20, padding: '40px 36px', width: 380,
             boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
           }}>
-            <h3 style={{ fontSize: 18, fontWeight: 800, marginBottom: 8 }}>휴대폰 번호 입력</h3>
-            <p style={{ fontSize: 13, color: '#888', marginBottom: 24 }}>
-              KG이니시스 결제에 필요합니다.
-            </p>
-            <input
-              type="tel"
-              placeholder="01012345678"
-              value={phone}
-              onChange={e => { setPhone(e.target.value); setPhoneError('') }}
-              onKeyDown={e => e.key === 'Enter' && confirmPayment()}
-              autoFocus
-              style={{
-                width: '100%', padding: '12px 14px', borderRadius: 10, fontSize: 16,
-                border: `1.5px solid ${phoneError ? '#ef4444' : 'var(--border)'}`,
-                outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit',
-              }}
-            />
-            {phoneError && (
-              <p style={{ fontSize: 12, color: '#ef4444', marginTop: 6 }}>{phoneError}</p>
-            )}
+            <h3 style={{ fontSize: 18, fontWeight: 800, marginBottom: 6 }}>결제자 정보 확인</h3>
+            <p style={{ fontSize: 13, color: '#888', marginBottom: 24 }}>KG이니시스 결제에 필요합니다.</p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div>
+                <input
+                  type="text"
+                  placeholder="이름"
+                  value={name}
+                  onChange={e => { setName(e.target.value); setNameError('') }}
+                  style={{ ...inputStyle, borderColor: nameError ? '#ef4444' : 'var(--border)' }}
+                />
+                {nameError && <p style={{ fontSize: 12, color: '#ef4444', marginTop: 4 }}>{nameError}</p>}
+              </div>
+              <div>
+                <input
+                  type="tel"
+                  placeholder="휴대폰 번호 (01012345678)"
+                  value={phone}
+                  onChange={e => { setPhone(e.target.value); setPhoneError('') }}
+                  onKeyDown={e => e.key === 'Enter' && confirmPayment()}
+                  style={{ ...inputStyle, borderColor: phoneError ? '#ef4444' : 'var(--border)' }}
+                />
+                {phoneError && <p style={{ fontSize: 12, color: '#ef4444', marginTop: 4 }}>{phoneError}</p>}
+              </div>
+            </div>
+
             <div style={{ display: 'flex', gap: 10, marginTop: 24 }}>
               <button
                 onClick={() => setPendingPlan(null)}

@@ -6,44 +6,51 @@ import Navbar from '../components/Navbar'
 export default function SignupPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [name, setName] = useState('')
+  const [phone, setPhone] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [done, setDone] = useState(false)
 
   async function handleSignup() {
+    if (!name.trim()) { setError('이름을 입력해주세요.'); return }
+    const phoneClean = phone.replace(/[^0-9]/g, '')
+    if (phoneClean.length < 10) { setError('올바른 휴대폰 번호를 입력해주세요.'); return }
     if (!email || !password) { setError('이메일과 비밀번호를 입력해주세요.'); return }
     if (password.length < 6) { setError('비밀번호는 6자 이상이어야 해요.'); return }
 
     setLoading(true); setError('')
-    const { data, error: err } = await supabase.auth.signUp({ 
-      email, 
+    const { data, error: err } = await supabase.auth.signUp({
+      email,
       password,
       options: {
-        data: {
-          display_name: email.split('@')[0]
-        }
+        data: { display_name: name.trim() }
       }
     })
 
     if (err) { setError(err.message); setLoading(false); return }
 
-    // 프로필 생성 (무료 5장 지급)
     if (data.user) {
       const { error: profileError } = await supabase.from('profiles').insert({
         id: data.user.id,
         email,
+        name: name.trim(),
+        phone: phoneClean,
         free_credits: 5,
         paid_credits: 0,
       })
-      
+
       if (profileError) {
         console.error('Profile creation error:', profileError)
-        // Note: If this fails, it might be due to RLS. 
-        // In a production app, this should ideally be handled by a Supabase Trigger.
       }
     }
     setDone(true)
     setLoading(false)
+  }
+
+  const inputStyle = {
+    padding: '14px 16px', borderRadius: 10, border: '1.5px solid var(--border)',
+    fontSize: 15, outline: 'none', fontFamily: 'inherit', width: '100%', boxSizing: 'border-box' as const,
   }
 
   return (
@@ -69,11 +76,27 @@ export default function SignupPage() {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <input
+                  type="text"
+                  placeholder="이름"
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  style={inputStyle}
+                  onKeyDown={e => e.key === 'Enter' && handleSignup()}
+                />
+                <input
+                  type="tel"
+                  placeholder="휴대폰 번호 (01012345678)"
+                  value={phone}
+                  onChange={e => setPhone(e.target.value)}
+                  style={inputStyle}
+                  onKeyDown={e => e.key === 'Enter' && handleSignup()}
+                />
+                <input
                   type="email"
                   placeholder="이메일"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
-                  style={{ padding: '14px 16px', borderRadius: 10, border: '1.5px solid var(--border)', fontSize: 15, outline: 'none', fontFamily: 'inherit' }}
+                  style={inputStyle}
                   onKeyDown={e => e.key === 'Enter' && handleSignup()}
                 />
                 <input
@@ -81,7 +104,7 @@ export default function SignupPage() {
                   placeholder="비밀번호 (6자 이상)"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  style={{ padding: '14px 16px', borderRadius: 10, border: '1.5px solid var(--border)', fontSize: 15, outline: 'none', fontFamily: 'inherit' }}
+                  style={inputStyle}
                   onKeyDown={e => e.key === 'Enter' && handleSignup()}
                 />
 
