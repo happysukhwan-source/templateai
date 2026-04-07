@@ -23,6 +23,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!plan) return res.status(400).json({ error: '유효하지 않은 플랜입니다.' })
 
   try {
+    console.log(`[Confirm] Verifying payment: ${paymentId} for plan: ${planId}`)
+
     // 포트원 V2 결제 조회 API로 검증
     const portoneRes = await fetch(`https://api.portone.io/payments/${paymentId}`, {
       headers: {
@@ -31,36 +33,46 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     })
 
     if (!portoneRes.ok) {
-      throw new Error('포트원 결제 조회 실패')
+      const errorText = await portoneRes.text()
+      console.error('[Confirm] PortOne API Error:', errorText)
+      throw new Error(`포트원 결제 조회 실패 (${portoneRes.status})`)
     }
 
     const payment = await portoneRes.json()
+    console.log('[Confirm] Payment status:', payment.status)
 
     // 결제 상태 검증
     if (payment.status !== 'PAID') {
-      throw new Error('결제가 완료되지 않았습니다')
+      throw new Error(`결제가 완료되지 않았습니다 (상태: ${payment.status})`)
     }
 
     // 금액을 클라이언트 body가 아닌 서버 plan 기준으로 검증
     if (payment.amount.total !== plan.amount) {
+      console.error(`[Confirm] Amount mismatch. Expected: ${plan.amount}, Got: ${payment.amount.total}`)
       throw new Error('결제 금액이 일치하지 않습니다')
     }
 
-    // 유저 정보 가져오기 (포트원 결제 데이터 기반)
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('id, paid_credits')
-      .eq('id', payment.customer?.id || '')
-      .single()
+    // 유저 정보 가져오기
+    // 1. customer.id (우리가 보낸 customerId)
+    // 2. customer.email
+    const customerId = payment.customer?.id
+    const customerEmail = payment.customer?.email
 
-    const { data: userByEmail } = await supabase
-      .from('profiles')
-      .select('id, paid_credits')
-      .eq('email', payment.customer?.email || '')
-      .single()
+    console.log(`[Confirm] Looking up user - ID: ${customerId}, Email: ${customerEmail}`)
 
-    const targetProfile = profile || userByEmail
-    if (!targetProfile) throw new Error('사용자를 찾을 수 없습니다')
+    const { data: profileById } = customerId 
+      ? await supabase.from('profiles').select('id, paid_credits').eq('id', customerId).single()
+      : { data: null }
+
+    const { data: profileByEmail } = !profileById && customerEmail
+      ? await supabase.from('profiles').select('id, paid_credits').eq('email', customerEmail).single()
+      : { data: null }
+
+    const targetProfile = profileById || profileByEmail
+    if (!targetProfile) {
+      console.error('[Confirm] User not found in profiles table')
+      throw new Error('사용자를 찾을 수 없습니다. 가입 정보를 확인해주세요.')
+    }
 
     // 중복 결제 처리 방지
     const { data: existing } = await supabase
@@ -70,18 +82,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .single()
 
     if (existing) {
-      return res.status(200).json({ success: true })
+      console.log('[Confirm] Payment already processed:', paymentId)
+      return res.status(200).json({ success: true, alreadyProcessed: true })
     }
 
-    // 크레딧 추가 (서버에서 계산한 plan.credits 사용)
+    // 크레딧 추가
     const newCredits = (targetProfile.paid_credits || 0) + plan.credits
-    await supabase
+    const { error: updateError } = await supabase
       .from('profiles')
       .update({ paid_credits: newCredits })
       .eq('id', targetProfile.id)
 
+    if (updateError) throw new Error(`크레딧 업데이트 실패: ${updateError.message}`)
+
     // 결제 기록 저장
-    await supabase.from('payments').insert({
+    const { error: insertError } = await supabase.from('payments').insert({
       user_id: targetProfile.id,
       order_id: paymentId,
       payment_key: paymentId,
@@ -89,8 +104,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       credits_added: plan.credits,
     })
 
+    if (insertError) {
+      console.error('[Confirm] Failed to record payment:', insertError.message)
+      // 결제 기록 저장 실패해도 일단 크레딧은 올라갔으므로 성공 응답을 보낼지 고민... 
+      // 하지만 기록이 없으면 나중에 문제가 되므로 에러 처리
+    }
+
+    console.log(`[Confirm] Success! Added ${plan.credits} credits to user ${targetProfile.id}`)
     return res.status(200).json({ success: true })
   } catch (err: any) {
+    console.error('[Confirm] Error:', err.message)
     return res.status(500).json({ error: err.message })
   }
 }

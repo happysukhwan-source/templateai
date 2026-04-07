@@ -4,7 +4,7 @@ echo [TemplateAI] GitHub Push Start...
 echo ========================================
 
 git add .
-git commit -m "feat: implement tiered credit deduction (5000px+ 2 credits) and refine text placeholders"
+git commit -m "feat: implement PortOne V2 payment integration with KG Inicis and webhooks"
 git push
 
 echo.

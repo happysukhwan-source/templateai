@@ -32,6 +32,7 @@ export default function PricingPage({ session }: Props) {
         currency: 'CURRENCY_KRW',
         payMethod: 'CARD',
         customer: {
+          customerId: session.user.id,
           email: session.user.email,
         },
         redirectUrl: `${window.location.origin}/payment/success?planId=${plan.id}&credits=${plan.credits}&orderId=${orderId}`,

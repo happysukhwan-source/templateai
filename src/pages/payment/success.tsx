@@ -7,19 +7,41 @@ interface Props { session: Session | null }
 
 export default function PaymentSuccess({ session }: Props) {
   const router = useRouter()
+  const [verifying, setVerifying] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState('')
 
   useEffect(() => {
-    const { planId, credits, orderId } = router.query
-    // 쿼리가 아직 준비 안됐으면 대기
+    const { planId, credits, paymentId } = router.query
     if (!router.isReady) return
-    // 포트원은 이미 confirm.ts에서 검증 완료했으므로 바로 성공 처리
-    if (planId && credits) {
-      setDone(true)
-    } else {
-      setError('결제 정보를 확인할 수 없습니다.')
+
+    async function confirm() {
+      if (!paymentId || !planId) {
+        if (planId && credits) { setDone(true); return }
+        setError('결제 정보를 확인할 수 없습니다.')
+        return
+      }
+
+      setVerifying(true)
+      try {
+        const res = await fetch('/api/payment/confirm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ paymentId, planId }),
+        })
+        const data = await res.json()
+        if (data.success) {
+          setDone(true)
+        } else {
+          setError(data.error || '결제 검증에 실패했습니다.')
+        }
+      } catch (err) {
+        setError('서버 통신 중 오류가 발생했습니다.')
+      }
+      setVerifying(false)
     }
+
+    confirm()
   }, [router.isReady, router.query])
 
   return (
@@ -39,10 +61,16 @@ export default function PaymentSuccess({ session }: Props) {
             <p style={{ color: '#666', marginBottom: 24 }}>크레딧이 충전됐어요. 바로 변환해보세요!</p>
             <Link href="/convert" className="btn-primary" style={{ textDecoration: 'none', display: 'inline-block' }}>변환하러 가기 →</Link>
           </>
+        ) : verifying ? (
+          <>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>⏳</div>
+            <h2 style={{ fontSize: 24, fontWeight: 900, marginBottom: 12 }}>결제 확인 중</h2>
+            <p style={{ color: '#666' }}>포트원에서 결제 정보를 확인하고 있습니다...</p>
+          </>
         ) : (
           <>
             <div style={{ fontSize: 48, marginBottom: 16 }}>⏳</div>
-            <p style={{ color: '#666' }}>결제 확인 중...</p>
+            <p style={{ color: '#666' }}>잠시만 기다려주세요...</p>
           </>
         )}
       </div>
