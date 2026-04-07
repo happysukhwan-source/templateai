@@ -13,14 +13,31 @@ const PLANS = [
 
 export default function PricingPage({ session }: Props) {
   const [loading, setLoading] = useState<string | null>(null)
+  const [pendingPlan, setPendingPlan] = useState<typeof PLANS[0] | null>(null)
+  const [phone, setPhone] = useState('')
+  const [phoneError, setPhoneError] = useState('')
 
-  async function handlePayment(plan: typeof PLANS[0]) {
+  function openPhoneModal(plan: typeof PLANS[0]) {
     if (!session) { window.location.href = '/signup'; return }
-    setLoading(plan.id)
-    try {
-      // 포트원 V2 SDK 동적 로드
-      const PortOne = await import('@portone/browser-sdk/v2')
+    setPhone('')
+    setPhoneError('')
+    setPendingPlan(plan)
+  }
 
+  async function confirmPayment() {
+    const phoneClean = phone.replace(/[^0-9]/g, '')
+    if (phoneClean.length < 10) {
+      setPhoneError('올바른 휴대폰 번호를 입력해주세요.')
+      return
+    }
+    if (!pendingPlan) return
+
+    const plan = pendingPlan
+    setPendingPlan(null)
+    setLoading(plan.id)
+
+    try {
+      const PortOne = await import('@portone/browser-sdk/v2')
       const orderId = `${plan.id}_${Date.now()}`
 
       const response = await PortOne.requestPayment({
@@ -32,26 +49,21 @@ export default function PricingPage({ session }: Props) {
         currency: 'CURRENCY_KRW',
         payMethod: 'CARD',
         customer: {
-          customerId: session.user.id,
-          email: session.user.email,
+          customerId: session!.user.id,
+          email: session!.user.email,
+          phoneNumber: phoneClean,
         },
         redirectUrl: `${window.location.origin}/payment/success?planId=${plan.id}&credits=${plan.credits}&orderId=${orderId}`,
       })
 
       if (response?.code) {
-        // 결제 실패
         console.error('결제 실패:', response.message)
         alert(`결제 실패: ${response.message}`)
       } else {
-        // 결제 성공 → 서버에서 검증
         const verifyRes = await fetch('/api/payment/confirm', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            paymentId: orderId,
-            planId: plan.id,
-            // credits와 amount는 서버에서 planId 기준으로 계산
-          }),
+          body: JSON.stringify({ paymentId: orderId, planId: plan.id }),
         })
         const verifyData = await verifyRes.json()
         if (verifyData.success) {
@@ -70,6 +82,59 @@ export default function PricingPage({ session }: Props) {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--cream)' }}>
       <Navbar />
+
+      {/* 휴대폰 번호 입력 모달 */}
+      {pendingPlan && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
+        }}>
+          <div style={{
+            background: 'white', borderRadius: 20, padding: '40px 36px', width: 360,
+            boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
+          }}>
+            <h3 style={{ fontSize: 18, fontWeight: 800, marginBottom: 8 }}>휴대폰 번호 입력</h3>
+            <p style={{ fontSize: 13, color: '#888', marginBottom: 24 }}>
+              KG이니시스 결제에 필요합니다.
+            </p>
+            <input
+              type="tel"
+              placeholder="01012345678"
+              value={phone}
+              onChange={e => { setPhone(e.target.value); setPhoneError('') }}
+              onKeyDown={e => e.key === 'Enter' && confirmPayment()}
+              autoFocus
+              style={{
+                width: '100%', padding: '12px 14px', borderRadius: 10, fontSize: 16,
+                border: `1.5px solid ${phoneError ? '#ef4444' : 'var(--border)'}`,
+                outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit',
+              }}
+            />
+            {phoneError && (
+              <p style={{ fontSize: 12, color: '#ef4444', marginTop: 6 }}>{phoneError}</p>
+            )}
+            <div style={{ display: 'flex', gap: 10, marginTop: 24 }}>
+              <button
+                onClick={() => setPendingPlan(null)}
+                style={{
+                  flex: 1, padding: '12px', borderRadius: 10, fontWeight: 700, fontSize: 14,
+                  border: '1.5px solid var(--border)', background: 'transparent',
+                  cursor: 'pointer', fontFamily: 'inherit',
+                }}
+              >취소</button>
+              <button
+                onClick={confirmPayment}
+                style={{
+                  flex: 2, padding: '12px', borderRadius: 10, fontWeight: 700, fontSize: 14,
+                  border: 'none', background: 'var(--accent)', color: 'white',
+                  cursor: 'pointer', fontFamily: 'inherit',
+                }}
+              >결제하기 →</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div style={{ maxWidth: 860, margin: '0 auto', padding: '100px 24px 60px', textAlign: 'center' }}>
 
         <div style={{ fontFamily: 'Space Mono, monospace', fontSize: 11, letterSpacing: 3, color: 'var(--accent)', fontWeight: 700, marginBottom: 16 }}>PRICING</div>
@@ -119,7 +184,7 @@ export default function PricingPage({ session }: Props) {
               </ul>
 
               <button
-                onClick={() => handlePayment(plan)}
+                onClick={() => openPhoneModal(plan)}
                 disabled={loading === plan.id}
                 style={{
                   width: '100%', padding: '14px', borderRadius: 10, fontWeight: 700, fontSize: 14,
@@ -148,7 +213,7 @@ export default function PricingPage({ session }: Props) {
         </div>
 
         <p style={{ marginTop: 32, fontSize: 12, color: '#bbb' }}>
-          💳 결제는 포트원 · 토스페이먼츠를 통해 안전하게 처리됩니다
+          💳 결제는 포트원 · KG이니시스를 통해 안전하게 처리됩니다
         </p>
       </div>
     </div>
