@@ -40,7 +40,31 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const { data } = await supabase.from('profiles').select('free_credits, paid_credits').eq('id', user.id).single()
       profile = data
     }
-    const totalCredits = (profile?.free_credits || 0) + (profile?.paid_credits || 0)
+
+    const freeCredits = profile?.free_credits || 0
+    let paidCredits = profile?.paid_credits || 0
+
+    // 만료된 유료 크레딧 처리
+    if (!isUserAdmin && paidCredits > 0) {
+      const now = new Date().toISOString()
+      const { data: expiredPayments } = await supabase
+        .from('payments')
+        .select('credits_added')
+        .eq('user_id', user.id)
+        .lt('expires_at', now)
+
+      if (expiredPayments && expiredPayments.length > 0) {
+        const expiredCredits = expiredPayments.reduce((sum: number, p: any) => sum + p.credits_added, 0)
+        const deductExpired = Math.min(paidCredits, expiredCredits)
+        if (deductExpired > 0) {
+          paidCredits = paidCredits - deductExpired
+          await supabase.from('profiles').update({ paid_credits: paidCredits }).eq('id', user.id)
+          await supabase.from('payments').delete().eq('user_id', user.id).lt('expires_at', now)
+        }
+      }
+    }
+
+    const totalCredits = freeCredits + paidCredits
     
     if (!isUserAdmin && totalCredits < requiredCredits) {
       return res.status(400).json({ error: `크레딧이 부족해요. (보유: ${totalCredits}, 필요: ${requiredCredits})` })
@@ -51,7 +75,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (!isUserAdmin) {
       let remaining = requiredCredits
-      const free = profile?.free_credits || 0
+      const free = freeCredits
       const deductFree = Math.min(free, remaining)
       if (deductFree > 0) {
         await supabase.from('profiles').update({ free_credits: free - deductFree }).eq('id', user.id)
@@ -59,7 +83,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         remaining -= deductFree
       }
       if (remaining > 0) {
-        const paid = profile?.paid_credits || 0
+        const paid = paidCredits
         await supabase.from('profiles').update({ paid_credits: paid - remaining }).eq('id', user.id)
         usedPaidCount = remaining
       }
