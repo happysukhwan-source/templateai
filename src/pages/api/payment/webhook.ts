@@ -75,12 +75,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const newCredits = (targetProfile.paid_credits || 0) + plan.credits
     await supabase.from('profiles').update({ paid_credits: newCredits }).eq('id', targetProfile.id)
 
+    const expiresAt = new Date()
+    expiresAt.setMonth(expiresAt.getMonth() + 3)
+
     await supabase.from('payments').insert({
       user_id: targetProfile.id,
       order_id: paymentId,
       payment_key: paymentId,
       amount: plan.amount,
       credits_added: plan.credits,
+      expires_at: expiresAt.toISOString(),
     })
 
     console.log(`[Webhook] Success! Added ${plan.credits} credits to ${targetProfile.id}`)

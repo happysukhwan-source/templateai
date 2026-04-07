@@ -96,12 +96,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (updateError) throw new Error(`크레딧 업데이트 실패: ${updateError.message}`)
 
     // 결제 기록 저장
+    const expiresAt = new Date()
+    expiresAt.setMonth(expiresAt.getMonth() + 3)
+
     const { error: insertError } = await supabase.from('payments').insert({
       user_id: targetProfile.id,
       order_id: paymentId,
       payment_key: paymentId,
       amount: plan.amount,
       credits_added: plan.credits,
+      expires_at: expiresAt.toISOString(),
     })
 
     if (insertError) {

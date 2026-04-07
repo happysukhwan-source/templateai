@@ -7,6 +7,7 @@ import { isAdmin } from '../lib/admin'
 export default function Navbar() {
   const [session, setSession] = useState<Session | null>(null)
   const [credits, setCredits] = useState<number>(0)
+  const [expiresAt, setExpiresAt] = useState<string | null>(null)
   const [isAdminUser, setIsAdminUser] = useState(false)
 
   useEffect(() => {
@@ -61,6 +62,21 @@ export default function Navbar() {
     }
 
     if (data) setCredits((data.free_credits || 0) + (data.paid_credits || 0))
+
+    // 유료 크레딧이 있으면 가장 최근 결제의 만료일 조회
+    if (data?.paid_credits > 0) {
+      const { data: payment } = await supabase
+        .from('payments')
+        .select('expires_at')
+        .eq('user_id', userId)
+        .order('expires_at', { ascending: false })
+        .limit(1)
+        .single()
+      if (payment?.expires_at) {
+        const d = new Date(payment.expires_at)
+        setExpiresAt(`${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`)
+      }
+    }
   }
 
   async function handleLogout() {
@@ -83,7 +99,10 @@ export default function Navbar() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
         {session ? (
           <>
-            <span className="credit-badge">{isAdminUser ? '무제한 사용 중' : `잔여 ${credits}장`}</span>
+            <span className="credit-badge">
+              {isAdminUser ? '무제한 사용 중' : `잔여 ${credits}장`}
+              {!isAdminUser && expiresAt && <span style={{ fontSize: 10, color: '#aaa', marginLeft: 6 }}>~{expiresAt}</span>}
+            </span>
             <Link href="/convert" style={{
               fontSize: 13, fontWeight: 700, color: 'white',
               background: 'var(--dark)', padding: '10px 20px',
