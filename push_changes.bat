@@ -4,7 +4,7 @@ echo [TemplateAI] GitHub Push Start...
 echo ========================================
 
 git add .
-git commit -m "feat: implement PortOne V2 payment integration with KG Inicis and webhooks"
+git commit -m "feat: fix 413 error with client-side compression and integrate PortOne V2 payments"
 git push
 
 echo.
