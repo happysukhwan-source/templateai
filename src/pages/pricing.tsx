@@ -14,11 +14,7 @@ const PLANS = [
 
 export default function PricingPage({ session }: Props) {
   const [loading, setLoading] = useState<string | null>(null)
-  const [pendingPlan, setPendingPlan] = useState<typeof PLANS[0] | null>(null)
-  const [phone, setPhone] = useState('')
-  const [name, setName] = useState('')
-  const [phoneError, setPhoneError] = useState('')
-  const [nameError, setNameError] = useState('')
+  const [profile, setProfile] = useState<{ name: string; phone: string } | null>(null)
 
   useEffect(() => {
     if (!session) return
@@ -28,27 +24,12 @@ export default function PricingPage({ session }: Props) {
       .eq('id', session.user.id)
       .single()
       .then(({ data }) => {
-        if (data?.phone) setPhone(data.phone)
-        if (data?.name) setName(data.name)
+        if (data) setProfile({ name: data.name || '', phone: data.phone || '' })
       })
   }, [session])
 
-  function openPhoneModal(plan: typeof PLANS[0]) {
+  async function handlePayment(plan: typeof PLANS[0]) {
     if (!session) { window.location.href = '/signup'; return }
-    setPhoneError('')
-    setNameError('')
-    setPendingPlan(plan)
-  }
-
-  async function confirmPayment() {
-    let valid = true
-    if (!name.trim()) { setNameError('이름을 입력해주세요.'); valid = false }
-    const phoneClean = phone.replace(/[^0-9]/g, '')
-    if (phoneClean.length < 10) { setPhoneError('올바른 휴대폰 번호를 입력해주세요.'); valid = false }
-    if (!valid || !pendingPlan) return
-
-    const plan = pendingPlan
-    setPendingPlan(null)
     setLoading(plan.id)
 
     try {
@@ -64,10 +45,10 @@ export default function PricingPage({ session }: Props) {
         currency: 'CURRENCY_KRW',
         payMethod: 'CARD',
         customer: {
-          customerId: session!.user.id,
-          fullName: name.trim(),
-          email: session!.user.email,
-          phoneNumber: phoneClean,
+          customerId: session.user.id,
+          fullName: profile?.name,
+          email: session.user.email,
+          phoneNumber: profile?.phone,
         },
         redirectUrl: `${window.location.origin}/payment/success?planId=${plan.id}&credits=${plan.credits}&orderId=${orderId}`,
       })
@@ -95,75 +76,9 @@ export default function PricingPage({ session }: Props) {
     setLoading(null)
   }
 
-  const inputStyle = {
-    width: '100%', padding: '12px 14px', borderRadius: 10, fontSize: 15,
-    border: '1.5px solid var(--border)', outline: 'none',
-    boxSizing: 'border-box' as const, fontFamily: 'inherit',
-  }
-
   return (
     <div style={{ minHeight: '100vh', background: 'var(--cream)' }}>
       <Navbar />
-
-      {/* 결제 정보 확인 모달 */}
-      {pendingPlan && (
-        <div style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
-        }}>
-          <div style={{
-            background: 'white', borderRadius: 20, padding: '40px 36px', width: 380,
-            boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
-          }}>
-            <h3 style={{ fontSize: 18, fontWeight: 800, marginBottom: 6 }}>결제자 정보 확인</h3>
-            <p style={{ fontSize: 13, color: '#888', marginBottom: 24 }}>KG이니시스 결제에 필요합니다.</p>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <div>
-                <input
-                  type="text"
-                  placeholder="이름"
-                  value={name}
-                  onChange={e => { setName(e.target.value); setNameError('') }}
-                  style={{ ...inputStyle, borderColor: nameError ? '#ef4444' : 'var(--border)' }}
-                />
-                {nameError && <p style={{ fontSize: 12, color: '#ef4444', marginTop: 4 }}>{nameError}</p>}
-              </div>
-              <div>
-                <input
-                  type="tel"
-                  placeholder="휴대폰 번호 (01012345678)"
-                  value={phone}
-                  onChange={e => { setPhone(e.target.value); setPhoneError('') }}
-                  onKeyDown={e => e.key === 'Enter' && confirmPayment()}
-                  style={{ ...inputStyle, borderColor: phoneError ? '#ef4444' : 'var(--border)' }}
-                />
-                {phoneError && <p style={{ fontSize: 12, color: '#ef4444', marginTop: 4 }}>{phoneError}</p>}
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: 10, marginTop: 24 }}>
-              <button
-                onClick={() => setPendingPlan(null)}
-                style={{
-                  flex: 1, padding: '12px', borderRadius: 10, fontWeight: 700, fontSize: 14,
-                  border: '1.5px solid var(--border)', background: 'transparent',
-                  cursor: 'pointer', fontFamily: 'inherit',
-                }}
-              >취소</button>
-              <button
-                onClick={confirmPayment}
-                style={{
-                  flex: 2, padding: '12px', borderRadius: 10, fontWeight: 700, fontSize: 14,
-                  border: 'none', background: 'var(--accent)', color: 'white',
-                  cursor: 'pointer', fontFamily: 'inherit',
-                }}
-              >결제하기 →</button>
-            </div>
-          </div>
-        </div>
-      )}
-
       <div style={{ maxWidth: 860, margin: '0 auto', padding: '100px 24px 60px', textAlign: 'center' }}>
 
         <div style={{ fontFamily: 'Space Mono, monospace', fontSize: 11, letterSpacing: 3, color: 'var(--accent)', fontWeight: 700, marginBottom: 16 }}>PRICING</div>
@@ -213,7 +128,7 @@ export default function PricingPage({ session }: Props) {
               </ul>
 
               <button
-                onClick={() => openPhoneModal(plan)}
+                onClick={() => handlePayment(plan)}
                 disabled={loading === plan.id}
                 style={{
                   width: '100%', padding: '14px', borderRadius: 10, fontWeight: 700, fontSize: 14,
