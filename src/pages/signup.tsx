@@ -113,6 +113,10 @@ export default function SignupPage() {
                 <button className="btn-primary" style={{ marginTop: 4 }} onClick={handleSignup} disabled={loading}>
                   {loading ? <><span className="spinner" style={{ marginRight: 8 }} />가입 중...</> : '무료로 가입하기 →'}
                 </button>
+
+                <p style={{ fontSize: 12, color: '#aaa', textAlign: 'center', marginTop: 4 }}>
+                  가입 후 입력하신 이메일로 확인 메일이 발송됩니다.
+                </p>
               </div>
 
               <p style={{ textAlign: 'center', marginTop: 20, fontSize: 13, color: '#888' }}>
