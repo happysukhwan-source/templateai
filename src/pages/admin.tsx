@@ -20,6 +20,7 @@ interface Payment {
   credits_added: number
   created_at: string
   order_id: string
+  expires_at: string | null
 }
 
 export default function AdminPage({ session }: Props) {
@@ -165,20 +166,15 @@ export default function AdminPage({ session }: Props) {
                 {payments.length === 0 && (
                   <tr><td colSpan={5} style={{ padding: 24, textAlign: 'center', color: '#aaa' }}>결제 내역 없음</td></tr>
                 )}
-                {payments.map((p, i) => {
-                  const expiresAt = p.created_at
-                    ? (() => { const d = new Date(p.created_at); d.setMonth(d.getMonth() + 3); return d.toISOString().slice(0, 10) })()
-                    : '-'
-                  return (
+                {payments.map((p, i) => (
                     <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
                       <td style={{ padding: '12px 20px', color: '#555' }}>{emailMap[p.user_id] || p.user_id}</td>
                       <td style={{ padding: '12px 20px', color: '#888' }}>{p.created_at?.slice(0, 16).replace('T', ' ')}</td>
-                      <td style={{ padding: '12px 20px', color: '#e67e22', fontWeight: 700 }}>{expiresAt}</td>
+                      <td style={{ padding: '12px 20px', color: '#e67e22', fontWeight: 700 }}>{p.expires_at ? p.expires_at.slice(0, 10) : '-'}</td>
                       <td style={{ padding: '12px 20px', textAlign: 'right', fontWeight: 700 }}>₩{p.amount.toLocaleString()}</td>
                       <td style={{ padding: '12px 20px', textAlign: 'right', color: 'var(--accent)', fontWeight: 700 }}>+{p.credits_added}장</td>
                     </tr>
-                  )
-                })}
+                ))}
               </tbody>
             </table>
           </div>

@@ -16,7 +16,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const [profilesRes, paymentsRes] = await Promise.all([
     supabase.from('profiles').select('id, email, free_credits, paid_credits, created_at').order('created_at', { ascending: false }),
-    supabase.from('payments').select('user_id, amount, credits_added, created_at, order_id').order('created_at', { ascending: false }),
+    supabase.from('payments').select('user_id, amount, credits_added, created_at, order_id, expires_at').order('created_at', { ascending: false }),
   ])
 
   return res.status(200).json({
