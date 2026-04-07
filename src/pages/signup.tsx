@@ -116,9 +116,8 @@ export default function SignupPage() {
 
                 <div style={{
                   background: '#f0f7ff', border: '1.5px solid #bfdbfe', borderRadius: 10,
-                  padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10, marginTop: 4,
+                  padding: '12px 16px', textAlign: 'center', marginTop: 4,
                 }}>
-                  <span style={{ fontSize: 18 }}>📧</span>
                   <p style={{ fontSize: 13, color: '#1d4ed8', margin: 0, fontWeight: 600 }}>
                     가입 후 이메일로 확인 링크가 발송됩니다. 꼭 확인해주세요!
                   </p>
