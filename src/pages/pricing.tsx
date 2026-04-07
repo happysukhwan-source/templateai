@@ -16,10 +16,6 @@ export default function PricingPage({ session }: Props) {
   const [loading, setLoading] = useState<string | null>(null)
   const [profileName, setProfileName] = useState('')
   const [profilePhone, setProfilePhone] = useState('')
-  const [pendingPlan, setPendingPlan] = useState<typeof PLANS[0] | null>(null)
-  const [inputName, setInputName] = useState('')
-  const [inputPhone, setInputPhone] = useState('')
-  const [formError, setFormError] = useState('')
 
   useEffect(() => {
     if (!session) return
@@ -36,38 +32,6 @@ export default function PricingPage({ session }: Props) {
 
   async function handlePayment(plan: typeof PLANS[0]) {
     if (!session) { window.location.href = '/signup'; return }
-
-    // name/phone 없는 기존 유저는 모달로 입력받기
-    if (!profileName || !profilePhone) {
-      setInputName(profileName)
-      setInputPhone(profilePhone)
-      setFormError('')
-      setPendingPlan(plan)
-      return
-    }
-
-    await processPayment(plan, profileName, profilePhone)
-  }
-
-  async function confirmModal() {
-    const phoneClean = inputPhone.replace(/[^0-9]/g, '')
-    if (!inputName.trim() || phoneClean.length < 10) {
-      setFormError('이름과 올바른 휴대폰 번호를 입력해주세요.')
-      return
-    }
-    if (!pendingPlan) return
-
-    // 프로필에 저장
-    await supabase.from('profiles').update({ name: inputName.trim(), phone: phoneClean }).eq('id', session!.user.id)
-    setProfileName(inputName.trim())
-    setProfilePhone(phoneClean)
-
-    const plan = pendingPlan
-    setPendingPlan(null)
-    await processPayment(plan, inputName.trim(), phoneClean)
-  }
-
-  async function processPayment(plan: typeof PLANS[0], name: string, phone: string) {
     setLoading(plan.id)
     try {
       const PortOne = await import('@portone/browser-sdk/v2')
@@ -82,10 +46,10 @@ export default function PricingPage({ session }: Props) {
         currency: 'CURRENCY_KRW',
         payMethod: 'CARD',
         customer: {
-          customerId: session!.user.id,
-          fullName: name,
-          email: session!.user.email,
-          phoneNumber: phone,
+          customerId: session.user.id,
+          fullName: profileName,
+          email: session.user.email,
+          phoneNumber: profilePhone,
         },
         redirectUrl: `${window.location.origin}/payment/success?planId=${plan.id}&credits=${plan.credits}&orderId=${orderId}`,
       })
@@ -113,54 +77,9 @@ export default function PricingPage({ session }: Props) {
     setLoading(null)
   }
 
-  const inputStyle = {
-    width: '100%', padding: '12px 14px', borderRadius: 10, fontSize: 15,
-    border: '1.5px solid var(--border)', outline: 'none',
-    boxSizing: 'border-box' as const, fontFamily: 'inherit',
-  }
-
   return (
     <div style={{ minHeight: '100vh', background: 'var(--cream)' }}>
       <Navbar />
-
-      {/* 기존 유저 정보 입력 모달 */}
-      {pendingPlan && (
-        <div style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
-        }}>
-          <div style={{
-            background: 'white', borderRadius: 20, padding: '40px 36px', width: 380,
-            boxShadow: '0 20px 60px rgba(0,0,0,0.15)',
-          }}>
-            <h3 style={{ fontSize: 18, fontWeight: 800, marginBottom: 6 }}>결제자 정보 입력</h3>
-            <p style={{ fontSize: 13, color: '#888', marginBottom: 24 }}>최초 1회만 입력하면 다음부터는 자동으로 사용됩니다.</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <input type="text" placeholder="이름" value={inputName}
-                onChange={e => { setInputName(e.target.value); setFormError('') }}
-                style={inputStyle} />
-              <input type="tel" placeholder="휴대폰 번호 (01012345678)" value={inputPhone}
-                onChange={e => { setInputPhone(e.target.value); setFormError('') }}
-                onKeyDown={e => e.key === 'Enter' && confirmModal()}
-                style={inputStyle} autoFocus />
-              {formError && <p style={{ fontSize: 12, color: '#ef4444' }}>{formError}</p>}
-            </div>
-            <div style={{ display: 'flex', gap: 10, marginTop: 24 }}>
-              <button onClick={() => setPendingPlan(null)} style={{
-                flex: 1, padding: '12px', borderRadius: 10, fontWeight: 700, fontSize: 14,
-                border: '1.5px solid var(--border)', background: 'transparent',
-                cursor: 'pointer', fontFamily: 'inherit',
-              }}>취소</button>
-              <button onClick={confirmModal} style={{
-                flex: 2, padding: '12px', borderRadius: 10, fontWeight: 700, fontSize: 14,
-                border: 'none', background: 'var(--accent)', color: 'white',
-                cursor: 'pointer', fontFamily: 'inherit',
-              }}>결제하기 →</button>
-            </div>
-          </div>
-        </div>
-      )}
-
       <div style={{ maxWidth: 860, margin: '0 auto', padding: '100px 24px 60px', textAlign: 'center' }}>
 
         <div style={{ fontFamily: 'Space Mono, monospace', fontSize: 11, letterSpacing: 3, color: 'var(--accent)', fontWeight: 700, marginBottom: 16 }}>PRICING</div>
