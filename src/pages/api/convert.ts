@@ -200,7 +200,7 @@ async function convertToSvg(base64: string, mimeType: string, sectionNum: number
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error('GEMINI_API_KEY가 누락되었습니다.');
   const genAI = new GoogleGenerativeAI(apiKey.trim());
-  const model = genAI.getGenerativeModel({ model: "gemini-3.1-pro" });
+  const model = genAI.getGenerativeModel({ model: "gemini-3.1-pro-preview" });
   
   const sectionInfo = totalSections > 1 ? ` (섹션 ${sectionNum}/${totalSections})` : '';
   const promptText = `이미지를 분석하여 피그마(Figma)에서 즉시 편집 가능한 SVG 템플릿으로 변환하세요.
