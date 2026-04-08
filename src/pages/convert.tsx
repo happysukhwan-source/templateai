@@ -105,7 +105,8 @@ export default function ConvertPage({ session }: Props) {
         body: JSON.stringify({
           imageData: base64, mimeType: 'image/jpeg',
           fileName: file.name,
-          originalHeight: imageDims?.h
+          originalHeight: imageDims?.h,
+          originalWidth: imageDims?.w
         }),
       })
       
@@ -221,7 +222,7 @@ export default function ConvertPage({ session }: Props) {
               onClick={handleConvert}
             >
               {status === 'converting'
-                ? <><span className="spinner" style={{ marginRight: 8 }} />최신 AI(3.1 Pro)가 변환 중 (최대 1분 소요)...</>
+                ? <><span className="spinner" style={{ marginRight: 8 }} />최신 AI가 변환 중 (최대 1분 소요)...</>
                 : !file ? '이미지를 먼저 업로드해주세요'
                   : hasOverflow ? '🔴 이미지 길이가 너무 깁니다'
                     : `✨ 통째로 Figma 템플릿 변환`}

@@ -24,7 +24,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     auth: { autoRefreshToken: false, persistSession: false }
   })
 
-  const { imageData, fileName, cropY1, cropY2, sectionNum, totalSections, originalHeight: clientHeight } = req.body
+  const { imageData, fileName, cropY1, cropY2, sectionNum, totalSections, originalHeight: clientHeight, originalWidth: clientWidth } = req.body
   if (!imageData) return res.status(400).json({ error: '필수 값이 없어요' })
 
   try {
@@ -38,6 +38,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // 2. 필요 크레딧 계산 (클라이언트에서 보낸 실제 원본 높이 우선)
     const activeHeight = clientHeight || height
+    const activeWidth = clientWidth || width
     const requiredCredits = activeHeight >= 5000 ? 2 : 1
 
     let { data: profile, error: profileError } = await supabase
@@ -112,7 +113,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     let svg: string
     try {
       const finalBase64 = finalBuffer.toString('base64')
-      svg = mergeConsecutiveTexts(removeTspan(await convertToSvg(finalBase64, 'image/png', sectionNum || 1, totalSections || 1, activeHeight)))
+      svg = mergeConsecutiveTexts(removeTspan(await convertToSvg(finalBase64, 'image/png', sectionNum || 1, totalSections || 1, activeHeight, activeWidth)))
+      
+      // [Fail-safe] AI가 혹시 가로/세로를 틀리게 줬을 경우를 대비해 루트 <svg> 태그 강제 수정
+      svg = svg.replace(/<svg\b([^>]*)>/i, (match, attrs) => {
+        // 기존 width, height, viewBox 속성 제거 후 강제 삽입
+        const cleanAttrs = attrs.replace(/\b(width|height|viewBox)=["'][^"']*["']/g, '').trim()
+        return `<svg ${cleanAttrs} width="${activeWidth}" height="${activeHeight}" viewBox="0 0 ${activeWidth} ${activeHeight}">`
+      })
     } catch (err) {
       // 실패 시 크레딧 복구
       if (!isUserAdmin) {
@@ -196,32 +204,35 @@ function removeTspan(svg: string): string {
   })
 }
 
-async function convertToSvg(base64: string, mimeType: string, sectionNum: number, totalSections: number, activeHeight: number): Promise<string> {
+async function convertToSvg(base64: string, mimeType: string, sectionNum: number, totalSections: number, activeHeight: number, activeWidth: number): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error('GEMINI_API_KEY가 누락되었습니다.');
   const genAI = new GoogleGenerativeAI(apiKey.trim());
-  const model = genAI.getGenerativeModel({ model: "gemini-3.1-pro-preview" });
+  const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
   
   const sectionInfo = totalSections > 1 ? ` (섹션 ${sectionNum}/${totalSections})` : '';
-  const promptText = `이미지를 분석하여 피그마(Figma)에서 즉시 편집 가능한 SVG 템플릿으로 변환하세요.
+  const promptText = `당신은 이미지의 레이아웃을 1:1 비율로 정밀 분석하여 'Figma UI 템플릿'을 제작하는 전문가입니다.
+원본의 모든 요소(이미지, 텍스트, 버튼)를 감지하여 동일한 좌표와 크기의 SVG 코드를 생성하세요.
 
-### 📐 크기 지침 (가장 중요)
-- 이 이미지의 원본 세로 길이는 **${activeHeight}px**입니다. 
-- AI는 결과물 SVG의 전체 높이가 이 원본 높이와 일치하거나 매우 비슷하도록 요소들 사이의 공백(영역 간 여백)을 실감나게 재현해야 합니다. 절대 임의로 길이를 압축하지 마세요.
+### 📐 1. 기본 설정
+- 전체 크기: 가로 **${activeWidth}px**, 세로 **${activeHeight}px**
+- 배경: <rect width="100%" height="100%" fill="#ffffff" />
 
-### 📋 텍스트 강제 치환 - 원본 텍스트 100% 무시
-이미지 속 모든 텍스트는 내용을 분석하지 말고 아래의 지정된 문구로만 **무조건** 교체하세요. (원본 내용 사용 금지)
-1. **가장 큰 메인 제목**: "제목 한 줄 입력" (1줄), "제목 두 줄 입력" (2줄)
-2. **중간 크기 본문/설명**: "내용 설명 최대 한 줄", "내용 설명 최대 두 줄"
-3. **태그/라벨/이미지 상단 작은 글씨**: "내용 한줄 입력"
-4. **버튼 텍스트**: "버튼 텍스트 입력"
+### 🖼️ 2. 이미지/아이콘 영역 처리
+- 모든 사진, 이미지, 아이콘 자리는 **연한 회색 단색 박스**로 교체하세요.
+- **스타일**: <rect fill="#f2f2f2" stroke="#e0e0e0" stroke-width="1" />
+- 원형 이미지는 <circle fill="#f2f2f2" stroke="#e0e0e0" stroke-width="1" />로 표현하세요.
+- 격자무늬 패턴을 쓰지 말고, 깨끗한 **회색(#f2f2f2)**으로만 채우세요.
 
-### 📋 그리기 규칙
-- **이미지 영역**: 사진 자리는 아이콘 없이 깨끗한 회색 박스(<rect fill="#ddd"/>)로만 만드세요.
-- **도형 중심**: 모든 요소는 피그마에서 수정 가능하도록 <rect>, <text> 위주로 구성하세요. <path> 사용을 최소화하세요.
-- **XML 준수**: 모든 속성값은 **반드시 큰따옴표("")**를 사용하세요. (예: height="100")
-- **폰트**: font-family="Apple SD Gothic Neo, Malgun Gothic, Noto Sans KR, sans-serif"
-- 오직 <svg> 코드만 출력하세요. 설명 금지.`;
+### 📋 3. 텍스트 가이드 (치환)
+- 모든 텍스트는 원본 위치 그대로 배치하되, 아래 문구로만 사용하세요:
+  - 메인 제목: "제목 한 줄 입력"
+  - 상세 내용: "내용은 최대 세 줄 이하로 넣어주세요"
+  - 버튼: "버튼 문구"
+
+### 🚀 4. 출력 규칙
+- 오직 <svg> 코드만 출력하세요. 설명은 생략합니다.
+- 모든 요소는 피그마에서 수정하기 좋게 그룹(<g>)화 하세요.`;
 
   const result = await model.generateContent({
     contents: [{ role: "user", parts: [{ text: promptText }, { inlineData: { data: base64, mimeType: mimeType } }] }],
