@@ -112,7 +112,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     let svg: string
     try {
       const finalBase64 = finalBuffer.toString('base64')
-      svg = mergeConsecutiveTexts(removeTspan(await convertToSvg(finalBase64, 'image/png', sectionNum || 1, totalSections || 1)))
+      svg = mergeConsecutiveTexts(removeTspan(await convertToSvg(finalBase64, 'image/png', sectionNum || 1, totalSections || 1, activeHeight)))
     } catch (err) {
       // 실패 시 크레딧 복구
       if (!isUserAdmin) {
@@ -196,28 +196,32 @@ function removeTspan(svg: string): string {
   })
 }
 
-async function convertToSvg(base64: string, mimeType: string, sectionNum: number, totalSections: number): Promise<string> {
+async function convertToSvg(base64: string, mimeType: string, sectionNum: number, totalSections: number, activeHeight: number): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error('GEMINI_API_KEY가 누락되었습니다.');
   const genAI = new GoogleGenerativeAI(apiKey.trim());
-  const model = genAI.getGenerativeModel({ model: "gemini-3-pro-preview" });
+  const model = genAI.getGenerativeModel({ model: "gemini-3.1-pro" });
   
   const sectionInfo = totalSections > 1 ? ` (섹션 ${sectionNum}/${totalSections})` : '';
-  const promptText = `이미지를 분석하여 피그마용 SVG 템플릿으로 변환하세요.
+  const promptText = `이미지를 분석하여 피그마(Figma)에서 즉시 편집 가능한 SVG 템플릿으로 변환하세요.
 
-### 📋 텍스트 강제 치환 (정답 이미지 가이드 준수) - 원본 텍스트 무시
-이미지 속 모든 텍스트는 원본 내용을 보지 말고 아래 규정된 문구로만 **강제 교체**하세요.
+### 📐 크기 지침 (가장 중요)
+- 이 이미지의 원본 세로 길이는 **${activeHeight}px**입니다. 
+- AI는 결과물 SVG의 전체 높이가 이 원본 높이와 일치하거나 매우 비슷하도록 요소들 사이의 공백(영역 간 여백)을 실감나게 재현해야 합니다. 절대 임의로 길이를 압축하지 마세요.
+
+### 📋 텍스트 강제 치환 - 원본 텍스트 100% 무시
+이미지 속 모든 텍스트는 내용을 분석하지 말고 아래의 지정된 문구로만 **무조건** 교체하세요. (원본 내용 사용 금지)
 1. **가장 큰 메인 제목**: "제목 한 줄 입력" (1줄), "제목 두 줄 입력" (2줄)
-2. **중간 크기 본문/설명**: "내용 설명 최대 한 줄", "내용 설명 최대 두 줄" (줄 수에 맞춰 한글 숫자 '한', '두', '세' 등 사용)
-3. **태그/라벨/이미지 위 작은 텍스트**: "내용 한줄 입력"
+2. **중간 크기 본문/설명**: "내용 설명 최대 한 줄", "내용 설명 최대 두 줄"
+3. **태그/라벨/이미지 상단 작은 글씨**: "내용 한줄 입력"
 4. **버튼 텍스트**: "버튼 텍스트 입력"
 
 ### 📋 그리기 규칙
-- **이미지 영역**: 사진 자리는 아이콘 없이 깨끗한 회색 박스(<rect fill="#ddd"/>)로만 처리하세요.
-- **XML 준수**: 모든 속성값은 반드시 큰따옴표("")로 감싸세요.
-- **벡터화 금지**: <path> 대신 <rect>, <text>를 사용하여 피그마에서 직접 편집 가능하게 만듭니다.
+- **이미지 영역**: 사진 자리는 아이콘 없이 깨끗한 회색 박스(<rect fill="#ddd"/>)로만 만드세요.
+- **도형 중심**: 모든 요소는 피그마에서 수정 가능하도록 <rect>, <text> 위주로 구성하세요. <path> 사용을 최소화하세요.
+- **XML 준수**: 모든 속성값은 **반드시 큰따옴표("")**를 사용하세요. (예: height="100")
 - **폰트**: font-family="Apple SD Gothic Neo, Malgun Gothic, Noto Sans KR, sans-serif"
-- 오직 <svg> 코드만 출력하세요.`;
+- 오직 <svg> 코드만 출력하세요. 설명 금지.`;
 
   const result = await model.generateContent({
     contents: [{ role: "user", parts: [{ text: promptText }, { inlineData: { data: base64, mimeType: mimeType } }] }],

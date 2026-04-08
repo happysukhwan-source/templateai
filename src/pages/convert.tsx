@@ -7,7 +7,7 @@ import { isAdmin } from '../lib/admin'
 
 interface Props { session: Session | null }
 type Status = 'idle' | 'converting' | 'done' | 'error'
-type Mode = 'detailed' | 'template'
+type Mode = 'template'
 
 const MAX_IMAGE_HEIGHT = 10000
 const PREVIEW_WIDTH = 380
@@ -20,7 +20,7 @@ export default function ConvertPage({ session }: Props) {
   const [resultSvg, setResultSvg] = useState<string>('')
   const [errorMsg, setErrorMsg] = useState('')
   const [dragOver, setDragOver] = useState(false)
-  const [mode, setMode] = useState<Mode>('detailed')
+  const [mode, setMode] = useState<Mode>('template')
   const inputRef = useRef<HTMLInputElement>(null)
 
   const hasOverflow = imageDims ? imageDims.h > MAX_IMAGE_HEIGHT : false
@@ -91,7 +91,7 @@ export default function ConvertPage({ session }: Props) {
         }
       }
 
-      const apiEndpoint = mode === 'template' ? '/api/template-convert' : '/api/convert'
+      const apiEndpoint = '/api/convert'
       
       // 이미지 압축 및 리사이징 (Vercel 4.5MB 제한 우회)
       const base64 = await compressImage(file)
@@ -150,43 +150,15 @@ export default function ConvertPage({ session }: Props) {
       <Navbar />
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '100px 24px 60px' }}>
         <h1 style={{ fontSize: 32, fontWeight: 900, letterSpacing: -1, marginBottom: 8 }}>
-          PNG → <span style={{ color: 'var(--accent)' }}>SVG 템플릿</span> 변환
+          PNG → <span style={{ color: 'var(--accent)' }}>Figma 템플릿</span> 변환
         </h1>
-        <p style={{ color: '#666', marginBottom: 20 }}>최대 높이 10,000px 이미지까지 한 번에 전체 변환 할 수 있어요.</p>
+        <p style={{ color: '#666', marginBottom: 24 }}>최대 높이 10,000px 이미지까지 한 번에 전체 변환 할 수 있어요.</p>
 
         {/* 모드 토글 */}
-        <div style={{ display: 'inline-flex', background: '#f0ede8', borderRadius: 12, padding: 4, marginBottom: 28, gap: 4 }}>
-          <button
-            onClick={() => setMode('detailed')}
-            style={{
-              padding: '8px 20px', borderRadius: 9, fontWeight: 700, fontSize: 13, cursor: 'pointer', border: 'none',
-              background: mode === 'detailed' ? 'white' : 'transparent',
-              color: mode === 'detailed' ? 'var(--dark)' : '#999',
-              boxShadow: mode === 'detailed' ? '0 1px 4px rgba(0,0,0,0.10)' : 'none',
-              transition: 'all 0.15s',
-            }}
-          >
-            상세 모드
-          </button>
-          <button
-            onClick={() => setMode('template')}
-            style={{
-              padding: '8px 20px', borderRadius: 9, fontWeight: 700, fontSize: 13, cursor: 'pointer', border: 'none',
-              background: mode === 'template' ? 'white' : 'transparent',
-              color: mode === 'template' ? 'var(--accent)' : '#999',
-              boxShadow: mode === 'template' ? '0 1px 4px rgba(0,0,0,0.10)' : 'none',
-              transition: 'all 0.15s',
-            }}
-          >
-            ✦ Figma 템플릿 모드 <span style={{ fontSize: 10, background: '#ff6b35', color: 'white', borderRadius: 4, padding: '1px 6px', marginLeft: 4 }}>NEW</span>
-          </button>
+        <div style={{ marginBottom: 24, padding: '12px 20px', background: '#fff5f0', border: '1.5px solid #ffc4b3', borderRadius: 10, fontSize: 13, color: '#cc3a00', textAlign: 'left' }}>
+          <strong>✦ Figma 템플릿 모드</strong> — AI가 불필요한 벡터 없이 <strong>배경 rect · 이미지 플레임 · 텍스트 플레임</strong>만 생성합니다.<br />
+          <span style={{ color: '#888', fontSize: 12 }}>다운로드 후 피그마에서 배경색 변경, 이미지 삽입, 텍스트 입력만 하면 바로 사용 가능합니다.</span>
         </div>
-        {mode === 'template' && (
-          <div style={{ marginBottom: 24, padding: '12px 20px', background: '#fff5f0', border: '1.5px solid #ffc4b3', borderRadius: 10, fontSize: 13, color: '#cc3a00', textAlign: 'left' }}>
-            <strong>Figma 템플릿 모드</strong> — 불필요한 벡터 없이 <strong>배경 rect · 이미지 플레임 · 텍스트 플레임</strong>만 생성합니다.<br />
-            <span style={{ color: '#888', fontSize: 12 }}>다운로드 후 피그마에서 배경색 변경, 이미지 삽입, 텍스트 입력만 하면 바로 사용 가능합니다.</span>
-          </div>
-        )}
 
         <div style={{ display: 'grid', gridTemplateColumns: '420px 1fr', gap: 28, alignItems: 'start' }}>
           {/* 좌측 */}
@@ -249,10 +221,10 @@ export default function ConvertPage({ session }: Props) {
               onClick={handleConvert}
             >
               {status === 'converting'
-                ? <><span className="spinner" style={{ marginRight: 8 }} />이미지 최적화 및 변환 중 (최대 1~2분 소요)...</>
+                ? <><span className="spinner" style={{ marginRight: 8 }} />최신 AI(3.1 Pro)가 변환 중 (최대 1분 소요)...</>
                 : !file ? '이미지를 먼저 업로드해주세요'
                   : hasOverflow ? '🔴 이미지 길이가 너무 깁니다'
-                    : `✨ 통째로 SVG 변환하기`}
+                    : `✨ 통째로 Figma 템플릿 변환`}
             </button>
           </div>
 
