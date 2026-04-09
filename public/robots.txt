@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /api/
+Disallow: /convert
+Disallow: /payment/
+
+Sitemap: https://www.templateai.shop/sitemap.xml
