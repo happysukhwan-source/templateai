@@ -1,3 +1,4 @@
+import Head from 'next/head'
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import Navbar from '../components/Navbar'
@@ -22,7 +23,39 @@ export default function HomePage({ session }: Props) {
 
   const isVisible = (id: string) => visibleEls.has(id)
 
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: 'templateAI',
+    url: 'https://www.templateai.shop',
+    applicationCategory: 'DesignApplication',
+    operatingSystem: 'Web',
+    description: '상세페이지 이미지를 피그마 템플릿으로 자동 변환하는 AI 서비스',
+    offers: {
+      '@type': 'Offer',
+      price: '600',
+      priceCurrency: 'KRW',
+    },
+  }
+
   return (
+    <>
+      <Head>
+        <title>상세페이지 피그마 템플릿 자동 변환 | templateAI</title>
+        <meta name="description" content="상세페이지 이미지를 올리면 30초 만에 편집 가능한 피그마 템플릿으로 변환. 상세페이지템플릿을 AI가 자동으로 만들어드려요. 스마트스토어·쿠팡 셀러 필수 도구." />
+        <meta name="keywords" content="상세페이지, 상세페이지템플릿, 피그마템플릿, 피그마 변환, 상세페이지 제작, 스마트스토어 상세페이지, 쿠팡 상세페이지, AI 디자인, SVG 변환" />
+        <link rel="canonical" href="https://www.templateai.shop/" />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://www.templateai.shop/" />
+        <meta property="og:title" content="상세페이지 피그마 템플릿 자동 변환 | templateAI" />
+        <meta property="og:description" content="상세페이지 이미지를 올리면 30초 만에 편집 가능한 피그마 템플릿으로 변환. 스마트스토어·쿠팡 셀러를 위한 AI 상세페이지 템플릿 서비스." />
+        <meta property="og:site_name" content="templateAI" />
+        <meta property="og:locale" content="ko_KR" />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      </Head>
     <div style={{ background: 'var(--cream)', minHeight: '100vh', overflowX: 'hidden' }}>
       <Navbar />
 
@@ -196,6 +229,7 @@ export default function HomePage({ session }: Props) {
         }
       `}</style>
     </div>
+    </>
   )
 }
 

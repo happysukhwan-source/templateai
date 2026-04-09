@@ -1,3 +1,4 @@
+import Head from 'next/head'
 import { useState, useEffect } from 'react'
 import Navbar from '../components/Navbar'
 import type { Session } from '@supabase/supabase-js'
@@ -78,6 +79,19 @@ export default function PricingPage({ session }: Props) {
   }
 
   return (
+    <>
+      <Head>
+        <title>요금제 | templateAI - 상세페이지 피그마 템플릿 변환</title>
+        <meta name="description" content="templateAI 상세페이지 피그마 템플릿 변환 요금제. 건당 300~600원, 가입 시 5장 무료 제공. 상세페이지템플릿을 저렴하게 만들어보세요." />
+        <meta name="keywords" content="상세페이지템플릿 가격, 피그마템플릿 요금, 상세페이지 제작 비용, templateAI 요금제" />
+        <link rel="canonical" href="https://www.templateai.shop/pricing" />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://www.templateai.shop/pricing" />
+        <meta property="og:title" content="요금제 | templateAI - 상세페이지 피그마 템플릿 변환" />
+        <meta property="og:description" content="건당 300~600원, 가입 시 5장 무료. 상세페이지 이미지를 피그마 템플릿으로 변환하는 가장 저렴한 방법." />
+        <meta property="og:site_name" content="templateAI" />
+        <meta property="og:locale" content="ko_KR" />
+      </Head>
     <div style={{ minHeight: '100vh', background: 'var(--cream)' }}>
       <Navbar />
       <div style={{ maxWidth: 860, margin: '0 auto', padding: '100px 24px 60px', textAlign: 'center' }}>
@@ -151,5 +165,6 @@ export default function PricingPage({ session }: Props) {
         </p>
       </div>
     </div>
+    </>
   )
 }
