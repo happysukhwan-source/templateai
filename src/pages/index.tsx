@@ -94,7 +94,7 @@ export default function HomePage({ session }: Props) {
         </div>
 
         <div style={{ display: 'flex', gap: 48, marginTop: 64, paddingTop: 40, borderTop: '1px solid var(--border)', flexWrap: 'wrap' }}>
-          {[['5장', '가입 시 무료 제공'], ['30초', '평균 변환 시간'], ['₩300~', '건당 가격']].map(([num, label]) => (
+          {[['5장', '가입 시 무료 제공'], ['30초', '평균 변환 시간'], ['₩300~', '최대할인 시']].map(([num, label]) => (
             <div key={label}>
               <span style={{ fontFamily: 'Space Mono, monospace', fontSize: 32, fontWeight: 700, display: 'block' }}>{num}</span>
               <span style={{ fontSize: 13, color: '#888', marginTop: 4, display: 'block' }}>{label}</span>
