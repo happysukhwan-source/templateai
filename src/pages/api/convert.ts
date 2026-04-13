@@ -105,22 +105,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     let finalBuffer = imageBuffer
+    let aiHeight = height
     if (cropY1 !== undefined && cropY2 !== undefined) {
       const sectionHeight = cropY2 - cropY1
       finalBuffer = await sharp(imageBuffer).extract({ left: 0, top: cropY1, width, height: sectionHeight }).png().toBuffer()
+      aiHeight = sectionHeight
     }
 
     let svg: string
     try {
       const finalBase64 = finalBuffer.toString('base64')
     // [수정] 텍스트 구조를 파괴하지 않도록 removeTspan을 제거하고 정규화 로직만 적용
-    svg = normalizePlaceholders(await convertToSvg(finalBase64, 'image/png', sectionNum || 1, totalSections || 1, activeHeight, activeWidth))
+    // AI에게는 압축/크롭된 실제 이미지 크기(width, aiHeight)를 전달하여 내부 좌표계를 생성하도록 유도
+    svg = normalizePlaceholders(await convertToSvg(finalBase64, 'image/png', sectionNum || 1, totalSections || 1, aiHeight, width))
     
-    // [Fail-safe] AI가 혹시 가로/세로를 틀리게 줬을 경우를 대비해 루트 <svg> 태그 강제 수정
+    // [Fail-safe] SVG 사이즈를 원본 이미지 크기와 완벽히 일치시킴
     svg = svg.replace(/<svg\b([^>]*)>/i, (match, attrs) => {
       // 기존 width, height, viewBox 속성 제거 후 강제 삽입
       const cleanAttrs = attrs.replace(/\b(width|height|viewBox)=["'][^"']*["']/g, '').trim()
-      return `<svg ${cleanAttrs} width="${activeWidth}" height="${activeHeight}" viewBox="0 0 ${activeWidth} ${activeHeight}">`
+      // viewBox는 AI가 생성한 좌표계 기준(실제 전달한 이미지 크기)
+      // width/height는 사용자가 업로드한 원본 사이즈(activeWidth/activeHeight)
+      return `<svg ${cleanAttrs} width="${activeWidth}" height="${activeHeight}" viewBox="0 0 ${width} ${aiHeight}">`
     })
   } catch (err) {
     // 실패 시 크레딧 복구
@@ -258,15 +263,17 @@ async function convertToSvg(base64: string, mimeType: string, sectionNum: number
   const promptText = `당신은 이미지의 레이아웃을 1:1 비율로 정밀 분석하여 'Figma UI 템플릿'을 제작하는 전문가입니다.
 원본의 모든 요소(이미지, 텍스트, 버튼)를 감지하여 동일한 좌표와 크기의 SVG 코드를 생성하세요.
 
-### 📐 1. 기본 설정 및 섹션 그룹화
+### 📐 1. 기본 설정 및 섹션 분할
 - **전체 배경 금지**: 이미지 전체를 덮는 <rect width="100%" height="100%" />를 절대 생성하지 마세요.
-- **섹션 분할 (Sectioning)**: 이미지를 논리적인 섹션(상단 배너, 상세 설명, 리뷰 영역 등) 단위로 분석하세요.
-- **그룹 기반 구조**: 각 섹션마다 반드시 <g> 태그를 사용하여 그룹화하고, 적절한 ID(예: id="block_1")를 부여하세요.
-- **개별 섹션 배경**: 각 그룹(<g>)의 가장 첫 번째 요소로, 해당 섹션의 영역을 채우는 <rect fill="#ffffff" /> (또는 원본의 배경색)를 반드시 생성하세요. 이는 피그마에서 각 섹션을 개별 프레임처럼 클릭하고 배경색을 바꾸기 위함입니다.
-- 전체 크기: 가로 **${activeWidth}px**, 세로 **${activeHeight}px**
+- **세분화된 섹션 분할**: 여러 장의 페이지 또는 구역이 이어 붙여진 이미지입니다. 시각적 경계나 배경색 변화 지점을 기준으로 섹션을 **최대한 잘게, 세분화하여** 나누세요. 
+- **그룹 기반 구조**: 분할된 각 섹션마다 반드시 <g> 태그를 사용하고 ID(예: id="block_1")를 부여하세요.
+- **인위적인 크기 확장 절대 금지(가장 중요)**: 전체 이미지 길이를 채우려고 일부 <rect>나 요소의 높이를 원본보다 터무니없이 크게 늘리지 마세요. 요소 자체를 키우는 대신 요소와 요소 사이의 정확한 **여백(y 좌표 빈 공간)**을 계산하여 1:1 위치에 배치해야 합니다. 어떤 요소도 원래 이미지에 보이는 이상으로 커지면 안 됩니다.
+- 개별 섹션의 배경은 <g> 태그의 첫 요소로 <rect>를 생성하되, 이 역시 실제 눈에 보이는 해당 구역의 1:1 높이와 정확히 일치해야 합니다.
+- 전체 캔버스 크기: 가로 **${activeWidth}px**, 세로 **${activeHeight}px**
 
-### 🖼️ 2. 이미지/아이콘 영역 처리
-- 모든 사진, 이미지, 아이콘 자리는 **연한 회색 단색 박스**로 교체하세요.
+### 🖼️ 2. 이미지/아이콘 영역 세부 처리
+- 요소의 테두리(Bounding Box)를 극도로 세밀하게 인식하여, 원래 존재하던 사진/아이콘 크기를 초과하지 않게 <rect> 영역을 잡으세요.
+- 여백을 사진 영역으로 착각해서 <rect>를 무리하게 길게 뽑지 마세요.
 - **스타일**: <rect fill="#f2f2f2" stroke="#e0e0e0" stroke-width="1" />
 - 원형 이미지는 <circle fill="#f2f2f2" stroke="#e0e0e0" stroke-width="1" />로 표현하세요.
 

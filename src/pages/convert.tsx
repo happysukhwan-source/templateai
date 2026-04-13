@@ -32,7 +32,7 @@ export default function ConvertPage({ session }: Props) {
       const img = new Image()
       img.onload = () => {
         const canvas = document.createElement('canvas')
-        const MAX_WIDTH = 1000 // Vercel 전송 제한(4.5MB)을 위해 가로폭 최적화
+        const MAX_WIDTH = 2560 // Vercel 전송 제한(4.5MB) 내에서 최대한 원본 크기 유지
         let width = img.naturalWidth
         let height = img.naturalHeight
 
