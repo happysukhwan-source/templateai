@@ -33,7 +33,7 @@ export default function HomePage({ session }: Props) {
     description: '상세페이지 이미지를 피그마 템플릿으로 자동 변환하는 AI 서비스',
     offers: {
       '@type': 'Offer',
-      price: '600',
+      price: '300',
       priceCurrency: 'KRW',
     },
   }
@@ -94,7 +94,7 @@ export default function HomePage({ session }: Props) {
         </div>
 
         <div style={{ display: 'flex', gap: 48, marginTop: 64, paddingTop: 40, borderTop: '1px solid var(--border)', flexWrap: 'wrap' }}>
-          {[['5장', '가입 시 무료 제공'], ['30초', '평균 변환 시간'], ['₩600', '건당 가격']].map(([num, label]) => (
+          {[['5장', '가입 시 무료 제공'], ['30초', '평균 변환 시간'], ['₩300~', '건당 가격']].map(([num, label]) => (
             <div key={label}>
               <span style={{ fontFamily: 'Space Mono, monospace', fontSize: 32, fontWeight: 700, display: 'block' }}>{num}</span>
               <span style={{ fontSize: 13, color: '#888', marginTop: 4, display: 'block' }}>{label}</span>
@@ -148,7 +148,7 @@ export default function HomePage({ session }: Props) {
           <div style={{ borderRadius: 16, overflow: 'hidden', border: '1px solid #333' }}>
             <div style={{ padding: '14px 20px', fontFamily: 'Space Mono, monospace', fontSize: 11, letterSpacing: 2, fontWeight: 700, background: '#1c1a00', color: '#f0b429', borderBottom: '1px solid #333' }}>AFTER — templateAI</div>
             <div style={{ padding: 28, background: '#111', display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {['PNG 파일 업로드', '30초 대기', 'SVG 다운로드', '₩600 결제', '피그마에서 바로 편집!'].map((t, i) => (
+              {['PNG 파일 업로드', '30초 대기', 'SVG 다운로드', '최대할인 시 ₩300 결제', '피그마에서 바로 편집!'].map((t, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 13, color: '#ddd' }}>
                   <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#f0b429', flexShrink: 0 }} />{t}
                 </div>
