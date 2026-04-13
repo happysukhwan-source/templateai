@@ -119,7 +119,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // AI에게는 압축/크롭된 실제 이미지 크기(width, aiHeight)를 전달하여 내부 좌표계를 생성하도록 유도
     svg = normalizePlaceholders(await convertToSvg(finalBase64, 'image/png', sectionNum || 1, totalSections || 1, aiHeight, width))
     
-    // [Fail-safe] SVG 사이즈를 원본 이미지 크기와 완벽히 일치시킴
+    // [Fail-safe 1] SVG 사이즈를 원본 이미지 크기와 완벽히 일치시킴
     svg = svg.replace(/<svg\b([^>]*)>/i, (match, attrs) => {
       // 기존 width, height, viewBox 속성 제거 후 강제 삽입
       const cleanAttrs = attrs.replace(/\b(width|height|viewBox)=["'][^"']*["']/g, '').trim()
@@ -127,6 +127,45 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // width/height는 사용자가 업로드한 원본 사이즈(activeWidth/activeHeight)
       return `<svg ${cleanAttrs} width="${activeWidth}" height="${activeHeight}" viewBox="0 0 ${width} ${aiHeight}">`
     })
+
+    // [Fail-safe 2] AI가 하단 끝까지 배경 rect를 채우지 않고 공백을 남겼을 경우 강제 보정
+    let maxY = 0;
+    let lastRectColor = '#f5f5f5'; // 기본 배경색
+    
+    // x가 0이거나 전체 width에 가까운 메인 배경 rect들 중에서 제일 밑으로 내려간 Y좌표를 찾음
+    const rectRegex = /<rect[^>]*>/ig;
+    let mRect: RegExpExecArray | null;
+    while ((mRect = rectRegex.exec(svg)) !== null) {
+      const rectStr = mRect[0];
+      const yMatch = rectStr.match(/y="([\d.]+)"/);
+      const hMatch = rectStr.match(/height="([\d.]+)"/);
+      const fillMatch = rectStr.match(/fill="([^"]+)"/);
+      const xMatch = rectStr.match(/x="([\d.]+)"/);
+
+      if (yMatch && hMatch) {
+        const x = xMatch ? parseFloat(xMatch[1]) : 0;
+        const y = parseFloat(yMatch[1]);
+        const h = parseFloat(hMatch[1]);
+        
+        // 주로 배경으로 쓰이는 x값이 0이거나 작은 rect만 취급 (아이콘 등 작은 요소 제외)
+        if (!isNaN(y) && !isNaN(h) && x <= 10) {
+          if (y + h > maxY) {
+            maxY = y + h;
+            if (fillMatch && fillMatch[1] !== 'none' && fillMatch[1] !== 'transparent') {
+              lastRectColor = fillMatch[1];
+            }
+          }
+        }
+      }
+    }
+
+    // 만약 계산된 최대 Y값이 전체 높이보다 작다면 (즉, 하단에 빈 공간이 남아있다면)
+    // 파싱 오류로 maxY가 지나치게 작게 계산된 경우(예: 화면의 절반 이상을 덮는 에러)를 방어하기 위해 gapHeight 제한
+    const gapHeight = aiHeight - Math.floor(maxY);
+    if (maxY > 0 && gapHeight > 0 && gapHeight < aiHeight * 0.5) { // 빈 공간이 전체 높이의 50% 미만일 때만 안전하게 보정
+      const fillerHtml = `\n  <!-- Bottom Fallback Background -->\n  <g id="section_bottom_fallback">\n    <rect x="0" y="${Math.floor(maxY)}" width="${width}" height="${gapHeight}" fill="${lastRectColor}" />\n  </g>\n`;
+      svg = svg.replace(/<\/svg>/i, `${fillerHtml}</svg>`);
+    }
   } catch (err) {
     // 실패 시 크레딧 복구
     if (!isUserAdmin) {
@@ -264,11 +303,12 @@ async function convertToSvg(base64: string, mimeType: string, sectionNum: number
 원본의 모든 요소(이미지, 텍스트, 버튼)를 감지하여 동일한 좌표와 크기의 SVG 코드를 생성하세요.
 
 ### 📐 1. 기본 설정 및 섹션 분할
-- **전체 배경 금지**: 이미지 전체를 덮는 <rect width="100%" height="100%" />를 절대 생성하지 마세요.
-- **세분화된 섹션 분할**: 여러 장의 페이지 또는 구역이 이어 붙여진 이미지입니다. 시각적 경계나 배경색 변화 지점을 기준으로 섹션을 **최대한 잘게, 세분화하여** 나누세요. 
-- **그룹 기반 구조**: 분할된 각 섹션마다 반드시 <g> 태그를 사용하고 ID(예: id="block_1")를 부여하세요.
-- **인위적인 크기 확장 절대 금지(가장 중요)**: 전체 이미지 길이를 채우려고 일부 <rect>나 요소의 높이를 원본보다 터무니없이 크게 늘리지 마세요. 요소 자체를 키우는 대신 요소와 요소 사이의 정확한 **여백(y 좌표 빈 공간)**을 계산하여 1:1 위치에 배치해야 합니다. 어떤 요소도 원래 이미지에 보이는 이상으로 커지면 안 됩니다.
-- 개별 섹션의 배경은 <g> 태그의 첫 요소로 <rect>를 생성하되, 이 역시 실제 눈에 보이는 해당 구역의 1:1 높이와 정확히 일치해야 합니다.
+- **빈 공간(Blank) 구역 방지 (가장 중요)**: 사용자가 피그마에서 어느 곳을 클릭해도 선택될 수 있도록, 어떠한 빈 공간이나 여백도 남기지 마세요. y=0부터 y=${activeHeight}까지 한 곳도 빠짐없이 여러 배경 <rect>들로 나눠 채워야 합니다.
+- **최하단 공백 방지**: 맨 마지막 구역의 배경 <rect>는 (y좌표 + height) 값이 전체 높이(${activeHeight})까지 정확히 도달해야 합니다.
+- **거대 배경 금지 & 개별 섹션화**: 이미지 전체(높이의 90% 이상)를 단 하나의 <rect>로 덮지 마세요! 여러 개의 섹션으로 조각내어 각 섹션의 <g> 안에 배경 <rect>를 넣으세요.
+- **전체 그룹화 금지**: 전체 모든 섹션을 감싸는 하나의 단일 부모 <g> 태그를 생성하지 마세요. <svg> 바로 아래에 각 섹션의 <g> 태그들이 병렬로 나열되어야 합니다.
+- **빈 공간 무조건 채우기**: 모든 섹션의 배경 <rect>들이 맞닿아 빈틈이 없어야 합니다.
+- 분할된 각 섹션마다 반드시 고유한 ID를 가진 <g> 태그를 사용하세요.
 - 전체 캔버스 크기: 가로 **${activeWidth}px**, 세로 **${activeHeight}px**
 
 ### 🖼️ 2. 이미지/아이콘 영역 세부 처리
