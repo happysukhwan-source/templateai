@@ -8,8 +8,8 @@ import { supabase } from '../lib/supabase'
 interface Props { session: Session | null }
 
 const PLANS = [
-  { id: 'pack_10', name: '10장 팩', price: 6000, credits: 10, perUnit: 600, badge: '' },
-  { id: 'pack_30', name: '30장 팩', price: 12000, credits: 30, perUnit: 400, badge: '인기' },
+  { id: 'pack_10', name: '10장 팩', price: 9000, credits: 10, perUnit: 900, badge: '' },
+  { id: 'pack_30', name: '30장 팩', price: 16000, credits: 30, perUnit: 533, badge: '인기' },
   { id: 'pack_100', name: '100장 팩', price: 30000, credits: 100, perUnit: 300, badge: '최대 할인' },
 ]
 
