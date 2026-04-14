@@ -39,6 +39,7 @@ interface Influencer {
 interface Commission {
   id: string
   influencer_id: string
+  referred_user_id: string | null
   order_amount: number
   commission_amount: number
   status: string
@@ -120,7 +121,7 @@ export default function AdminPage({ session }: Props) {
       setInfluencerError(data.error)
     } else {
       setInfluencers(prev => [data.influencer, ...prev])
-      setNewInfluencer({ name: '', slug: '', code: '', commission_rate: '10' })
+      setNewInfluencer({ name: '', slug: '', commission_rate: '10', bonus_credits: '0', discount_rate: '0' })
     }
     setAddingInfluencer(false)
   }

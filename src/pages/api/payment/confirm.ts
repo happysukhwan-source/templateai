@@ -78,7 +78,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // 유저 정보 가져오기
     // 1. customer.id (우리가 보낸 customerId)
     // 2. customer.email
-    const customerId = payment.customer?.id
     const customerEmail = payment.customer?.email
 
     console.log(`[Confirm] Looking up user - ID: ${customerId}, Email: ${customerEmail}`)
