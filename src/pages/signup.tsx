@@ -31,17 +31,39 @@ export default function SignupPage() {
     if (err) { setError(err.message); setLoading(false); return }
 
     if (data.user) {
+      // 쿠키에서 레퍼럴 ID 읽기 (링크로 방문한 경우)
+      const cookieMatch = document.cookie.match(/(?:^|;\s*)ref_id=([^;]+)/)
+      const referredBy = cookieMatch ? cookieMatch[1] : null
+
+      // 인플루언서 보너스 크레딧 조회
+      let bonusCredits = 0
+      if (referredBy) {
+        const { data: inf } = await supabase
+          .from('influencers')
+          .select('bonus_credits')
+          .eq('id', referredBy)
+          .eq('status', 'active')
+          .single()
+        if (inf) bonusCredits = inf.bonus_credits || 0
+      }
+
       const { error: profileError } = await supabase.from('profiles').upsert({
         id: data.user.id,
         email,
         name: name.trim(),
         phone: phoneClean,
-        free_credits: 5,
+        free_credits: 5 + bonusCredits,
         paid_credits: 0,
+        ...(referredBy ? { referred_by: referredBy } : {}),
       })
 
       if (profileError) {
         console.error('Profile creation error:', profileError)
+      }
+
+      // 레퍼럴 쿠키 삭제 (중복 사용 방지)
+      if (cookieMatch) {
+        document.cookie = 'ref_id=; Path=/; Max-Age=0'
       }
     }
     setDone(true)

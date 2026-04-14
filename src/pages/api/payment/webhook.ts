@@ -87,6 +87,46 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       expires_at: expiresAt.toISOString(),
     })
 
+    // 커미션 적립 및 할인 사용 처리
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('referred_by, referral_discount_used')
+      .eq('id', targetProfile.id)
+      .single()
+
+    // 할인 사용 처리 (첫 결제 한 번만)
+    if (profile?.referred_by && !profile.referral_discount_used) {
+      await supabase
+        .from('profiles')
+        .update({ referral_discount_used: true })
+        .eq('id', targetProfile.id)
+    }
+
+    if (profile?.referred_by) {
+      const { data: influencer } = await supabase
+        .from('influencers')
+        .select('id, commission_rate, total_earned')
+        .eq('id', profile.referred_by)
+        .eq('status', 'active')
+        .single()
+
+      if (influencer) {
+        const commissionAmount = Math.floor(plan.amount * influencer.commission_rate / 100)
+        await supabase.from('commissions').insert({
+          influencer_id: influencer.id,
+          referred_user_id: targetProfile.id,
+          payment_order_id: paymentId,
+          order_amount: plan.amount,
+          commission_amount: commissionAmount,
+        })
+        await supabase
+          .from('influencers')
+          .update({ total_earned: influencer.total_earned + commissionAmount })
+          .eq('id', influencer.id)
+        console.log(`[Webhook] Commission ₩${commissionAmount} added to influencer ${influencer.id}`)
+      }
+    }
+
     console.log(`[Webhook] Success! Added ${plan.credits} credits to ${targetProfile.id}`)
     return res.status(200).send('OK')
 

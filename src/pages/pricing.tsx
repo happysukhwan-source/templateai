@@ -17,6 +17,7 @@ export default function PricingPage({ session }: Props) {
   const [loading, setLoading] = useState<string | null>(null)
   const [profileName, setProfileName] = useState('')
   const [profilePhone, setProfilePhone] = useState('')
+  const [discountRate, setDiscountRate] = useState(0)
 
   useEffect(() => {
     if (!session) return
@@ -29,6 +30,13 @@ export default function PricingPage({ session }: Props) {
         if (data?.name) setProfileName(data.name)
         if (data?.phone) setProfilePhone(data.phone)
       })
+
+    // 레퍼럴 할인 조회
+    fetch('/api/payment/discount', {
+      headers: { 'Authorization': `Bearer ${session.access_token}` },
+    })
+      .then(r => r.json())
+      .then(d => setDiscountRate(d.discount_rate || 0))
   }, [session])
 
   async function handlePayment(plan: typeof PLANS[0]) {
@@ -37,13 +45,14 @@ export default function PricingPage({ session }: Props) {
     try {
       const PortOne = await import('@portone/browser-sdk/v2')
       const orderId = `${plan.id}_${Date.now()}`
+      const finalAmount = discountRate > 0 ? Math.floor(plan.price * (1 - discountRate / 100)) : plan.price
 
       const response = await PortOne.requestPayment({
         storeId: process.env.NEXT_PUBLIC_PORTONE_STORE_ID!,
         channelKey: process.env.NEXT_PUBLIC_PORTONE_CHANNEL_KEY!,
         paymentId: orderId,
         orderName: `templateAI ${plan.name}`,
-        totalAmount: plan.price,
+        totalAmount: finalAmount,
         currency: 'CURRENCY_KRW',
         payMethod: 'CARD',
         customer: {
@@ -119,9 +128,23 @@ export default function PricingPage({ session }: Props) {
                 }}>{plan.badge}</div>
               )}
               <div style={{ fontFamily: 'Space Mono, monospace', fontSize: 11, letterSpacing: 2, color: plan.badge === '인기' ? '#888' : '#999', marginBottom: 16 }}>{plan.name.toUpperCase()}</div>
-              <div style={{ fontFamily: 'Space Mono, monospace', fontSize: 40, fontWeight: 700, letterSpacing: -2, marginBottom: 4 }}>
-                ₩{plan.price.toLocaleString()}
-              </div>
+              {discountRate > 0 ? (
+                <div style={{ marginBottom: 4 }}>
+                  <div style={{ fontFamily: 'Space Mono, monospace', fontSize: 22, fontWeight: 700, textDecoration: 'line-through', color: '#aaa' }}>
+                    ₩{plan.price.toLocaleString()}
+                  </div>
+                  <div style={{ fontFamily: 'Space Mono, monospace', fontSize: 40, fontWeight: 700, letterSpacing: -2, color: 'var(--accent)' }}>
+                    ₩{Math.floor(plan.price * (1 - discountRate / 100)).toLocaleString()}
+                  </div>
+                  <div style={{ fontSize: 11, color: '#16a34a', fontWeight: 700, marginBottom: 4 }}>
+                    첫 결제 {discountRate}% 할인 적용 중
+                  </div>
+                </div>
+              ) : (
+                <div style={{ fontFamily: 'Space Mono, monospace', fontSize: 40, fontWeight: 700, letterSpacing: -2, marginBottom: 4 }}>
+                  ₩{plan.price.toLocaleString()}
+                </div>
+              )}
               <div style={{ fontSize: 13, color: plan.badge === '인기' ? '#888' : '#999', marginBottom: 28 }}>
                 {plan.credits}장 · 장당 ₩{plan.perUnit.toLocaleString()}
               </div>

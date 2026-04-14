@@ -46,9 +46,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       throw new Error(`결제가 완료되지 않았습니다 (상태: ${payment.status})`)
     }
 
+    // 레퍼럴 할인 조회 (첫 결제 미사용 유저)
+    let allowedAmount = plan.amount
+    const customerId = payment.customer?.id
+    if (customerId) {
+      const { data: profileForDiscount } = await supabase
+        .from('profiles')
+        .select('referred_by, referral_discount_used')
+        .eq('id', customerId)
+        .single()
+
+      if (profileForDiscount?.referred_by && !profileForDiscount.referral_discount_used) {
+        const { data: inf } = await supabase
+          .from('influencers')
+          .select('discount_rate')
+          .eq('id', profileForDiscount.referred_by)
+          .eq('status', 'active')
+          .single()
+        if (inf?.discount_rate) {
+          allowedAmount = Math.floor(plan.amount * (1 - inf.discount_rate / 100))
+        }
+      }
+    }
+
     // 금액을 클라이언트 body가 아닌 서버 plan 기준으로 검증
-    if (payment.amount.total !== plan.amount) {
-      console.error(`[Confirm] Amount mismatch. Expected: ${plan.amount}, Got: ${payment.amount.total}`)
+    if (payment.amount.total !== allowedAmount) {
+      console.error(`[Confirm] Amount mismatch. Expected: ${allowedAmount}, Got: ${payment.amount.total}`)
       throw new Error('결제 금액이 일치하지 않습니다')
     }
 
@@ -112,6 +135,46 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       console.error('[Confirm] Failed to record payment:', insertError.message)
       // 결제 기록 저장 실패해도 일단 크레딧은 올라갔으므로 성공 응답을 보낼지 고민... 
       // 하지만 기록이 없으면 나중에 문제가 되므로 에러 처리
+    }
+
+    // 커미션 적립 및 할인 사용 처리
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('referred_by, referral_discount_used')
+      .eq('id', targetProfile.id)
+      .single()
+
+    // 할인 사용 처리 (첫 결제 한 번만)
+    if (profile?.referred_by && !profile.referral_discount_used) {
+      await supabase
+        .from('profiles')
+        .update({ referral_discount_used: true })
+        .eq('id', targetProfile.id)
+    }
+
+    if (profile?.referred_by) {
+      const { data: influencer } = await supabase
+        .from('influencers')
+        .select('id, commission_rate, total_earned')
+        .eq('id', profile.referred_by)
+        .eq('status', 'active')
+        .single()
+
+      if (influencer) {
+        const commissionAmount = Math.floor(plan.amount * influencer.commission_rate / 100)
+        await supabase.from('commissions').insert({
+          influencer_id: influencer.id,
+          referred_user_id: targetProfile.id,
+          payment_order_id: paymentId,
+          order_amount: plan.amount,
+          commission_amount: commissionAmount,
+        })
+        await supabase
+          .from('influencers')
+          .update({ total_earned: influencer.total_earned + commissionAmount })
+          .eq('id', influencer.id)
+        console.log(`[Confirm] Commission ₩${commissionAmount} added to influencer ${influencer.id}`)
+      }
     }
 
     console.log(`[Confirm] Success! Added ${plan.credits} credits to user ${targetProfile.id}`)
