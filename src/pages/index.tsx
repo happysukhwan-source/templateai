@@ -217,7 +217,7 @@ export default function HomePage({ session }: Props) {
             <span>고객센터: <a href="tel:01067323121" style={{ color: '#999', textDecoration: 'none' }}>010-6732-3121</a></span>
             <span>이메일: <a href="mailto:bodywick@naver.com" style={{ color: '#999', textDecoration: 'none' }}>bodywick@naver.com</a></span>
           </div>
-          <span style={{ marginTop: 8 }}>© 2025 templateAI · All rights reserved.</span>
+          <span style={{ marginTop: 8 }}>© 2026 templateAI · All rights reserved.</span>
         </div>
       </footer>
 
