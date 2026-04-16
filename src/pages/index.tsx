@@ -30,7 +30,7 @@ export default function HomePage({ session }: Props) {
     url: 'https://www.templateai.shop',
     applicationCategory: 'DesignApplication',
     operatingSystem: 'Web',
-    description: '상세페이지 이미지를 피그마 템플릿으로 자동 변환하는 AI 서비스',
+    description: '상세페이지템플릿을 AI가 자동으로 만들어주는 서비스. 이미지를 올리면 30초 만에 피그마템플릿으로 변환.',
     offers: {
       '@type': 'Offer',
       price: '300',
@@ -38,22 +38,66 @@ export default function HomePage({ session }: Props) {
     },
   }
 
+  const faqLd = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: [
+      {
+        '@type': 'Question',
+        name: '피그마템플릿을 자동으로 만들 수 있나요?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: '네. templateAI에 상세페이지 이미지(PNG/JPG)를 업로드하면 30초 안에 피그마에서 바로 편집 가능한 SVG 피그마템플릿으로 변환됩니다.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: '상세페이지템플릿을 만드는 데 얼마나 걸리나요?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: '평균 30초입니다. 이미지를 업로드하면 AI가 레이아웃을 분석해 상세페이지템플릿을 자동 생성하고, SVG 파일로 즉시 다운로드할 수 있습니다.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: '스마트스토어·쿠팡 상세페이지템플릿도 만들 수 있나요?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: '네. 스마트스토어, 쿠팡 등 어떤 플랫폼의 상세페이지 이미지든 피그마템플릿으로 변환 가능합니다. 텍스트·이미지 영역이 편집 가능한 구조로 변환됩니다.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: '피그마템플릿 변환 비용은 얼마인가요?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: '가입 시 5장 무료 제공됩니다. 이후 최대 할인 적용 시 장당 ₩300부터 이용 가능합니다.',
+        },
+      },
+    ],
+  }
+
   return (
     <>
       <Head>
-        <title>상세페이지 피그마 템플릿 자동 변환 | templateAI</title>
-        <meta name="description" content="상세페이지 이미지를 올리면 30초 만에 편집 가능한 피그마 템플릿으로 변환. 상세페이지템플릿을 AI가 자동으로 만들어드려요. 스마트스토어·쿠팡 셀러 필수 도구." />
-        <meta name="keywords" content="상세페이지, 상세페이지템플릿, 피그마템플릿, 피그마 변환, 상세페이지 제작, 스마트스토어 상세페이지, 쿠팡 상세페이지, AI 디자인, SVG 변환" />
+        <title>피그마템플릿 자동 변환 · 상세페이지템플릿 AI | templateAI</title>
+        <meta name="description" content="상세페이지 이미지를 올리면 30초 만에 피그마템플릿으로 자동 변환. 상세페이지템플릿을 AI가 만들어드려요. 스마트스토어·쿠팡 셀러 필수 도구. 가입 시 5장 무료." />
+        <meta name="keywords" content="피그마템플릿, 상세페이지템플릿, 상세페이지 피그마, 피그마 변환, 상세페이지 제작, 스마트스토어 상세페이지템플릿, 쿠팡 상세페이지템플릿, AI 디자인, SVG 변환, 피그마 자동변환" />
         <link rel="canonical" href="https://www.templateai.shop/" />
+        <link rel="alternate" type="application/rss+xml" title="templateAI RSS" href="https://www.templateai.shop/rss.xml" />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://www.templateai.shop/" />
-        <meta property="og:title" content="상세페이지 피그마 템플릿 자동 변환 | templateAI" />
-        <meta property="og:description" content="상세페이지 이미지를 올리면 30초 만에 편집 가능한 피그마 템플릿으로 변환. 스마트스토어·쿠팡 셀러를 위한 AI 상세페이지 템플릿 서비스." />
+        <meta property="og:title" content="피그마템플릿 자동 변환 · 상세페이지템플릿 AI | templateAI" />
+        <meta property="og:description" content="상세페이지 이미지를 올리면 30초 만에 피그마템플릿으로 자동 변환. 상세페이지템플릿을 AI가 만들어드려요. 스마트스토어·쿠팡 셀러 필수 도구." />
         <meta property="og:site_name" content="templateAI" />
         <meta property="og:locale" content="ko_KR" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd) }}
         />
       </Head>
     <div style={{ background: 'var(--cream)', minHeight: '100vh', overflowX: 'hidden' }}>
@@ -71,16 +115,17 @@ export default function HomePage({ session }: Props) {
         </div>
 
         <h1 style={{ fontSize: 'clamp(48px, 8vw, 96px)', fontWeight: 900, lineHeight: 1.0, letterSpacing: -3, maxWidth: 800, marginBottom: 28 }}>
-          PNG 한 장이<br />
+          상세페이지를<br />
           <span style={{ color: 'var(--accent)', position: 'relative' }}>
-            피그마 템플릿
+            피그마템플릿
             <span style={{ position: 'absolute', bottom: 4, left: 0, right: 0, height: 6, background: 'var(--accent)', opacity: 0.2, borderRadius: 2 }} />
           </span>으로
         </h1>
 
         <p style={{ fontSize: 18, color: '#555', lineHeight: 1.7, maxWidth: 480, marginBottom: 48 }}>
-          상세페이지 이미지를 올리면 AI가 바로<br />
-          편집 가능한 피그마 SVG 템플릿으로 변환해요.<br />
+          상세페이지템플릿을 AI가 자동으로 만들어드려요.<br />
+          이미지를 올리면 30초 만에 편집 가능한<br />
+          피그마템플릿으로 변환됩니다.<br />
           스마트스토어, 쿠팡 셀러를 위한 서비스예요.
         </p>
 
@@ -177,6 +222,25 @@ export default function HomePage({ session }: Props) {
                   {item}
                 </div>
               ))}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── FAQ ── */}
+      <section style={{ padding: '100px 48px' }}>
+        <div style={{ fontFamily: 'Space Mono, monospace', fontSize: 11, letterSpacing: 3, color: 'var(--accent)', fontWeight: 700, marginBottom: 16 }}>FAQ</div>
+        <h2 style={{ fontSize: 'clamp(28px, 4vw, 52px)', fontWeight: 900, letterSpacing: -2, marginBottom: 52 }}>자주 묻는 질문</h2>
+        <div style={{ maxWidth: 720, display: 'flex', flexDirection: 'column', gap: 2, border: '2px solid var(--dark)', borderRadius: 20, overflow: 'hidden' }}>
+          {[
+            { q: '피그마템플릿을 자동으로 만들 수 있나요?', a: '네. 상세페이지 이미지(PNG/JPG)를 업로드하면 30초 안에 피그마에서 바로 편집 가능한 피그마템플릿(SVG)으로 변환됩니다.' },
+            { q: '상세페이지템플릿 만드는 데 얼마나 걸리나요?', a: '평균 30초입니다. AI가 레이아웃을 분석해 상세페이지템플릿을 자동 생성하고 즉시 SVG 파일로 다운로드할 수 있습니다.' },
+            { q: '스마트스토어·쿠팡 상세페이지템플릿도 되나요?', a: '네. 어떤 플랫폼의 상세페이지 이미지든 피그마템플릿으로 변환 가능합니다. 텍스트·이미지 영역이 편집 가능한 구조로 변환됩니다.' },
+            { q: '비용은 얼마인가요?', a: '가입 시 5장 무료 제공됩니다. 이후 최대 할인 적용 시 장당 ₩300부터 이용 가능합니다.' },
+          ].map((item, i, arr) => (
+            <div key={i} style={{ padding: '28px 36px', background: 'var(--cream)', borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none' }}>
+              <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 10 }}>Q. {item.q}</div>
+              <div style={{ fontSize: 14, color: '#666', lineHeight: 1.7 }}>{item.a}</div>
             </div>
           ))}
         </div>
