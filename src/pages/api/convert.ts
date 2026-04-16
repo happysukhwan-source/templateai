@@ -209,16 +209,37 @@ function normalizePlaceholders(svg: string): string {
   const elements: TextEl[] = []
   let m: RegExpExecArray | null
   while ((m = textRegex.exec(svg)) !== null) {
-    const attrs = m[1]
+    let attrs = m[1]
     const inner = m[2].trim()
     if (!inner) continue
     
     const x = parseFloat(attrs.match(/x="([^"]+)"/)?.[1] || '0')
     const y = parseFloat(attrs.match(/y="([^"]+)"/)?.[1] || '0')
-    const fontSize = parseFloat(attrs.match(/font-size="([^"]+)"/)?.[1] || '0')
-    const fill = attrs.match(/fill="([^"]+)"/)?.[1] || ''
-    const fontWeight = attrs.match(/font-weight="([^"]+)"/)?.[1] || 'normal'
     
+    // <text> 또는 <tspan> 내부에서 font-size, fill, font-weight를 추출하여 보존
+    const fontSizeMatch = attrs.match(/font-size="([^"]+)"/) || inner.match(/font-size="([^"]+)"/)
+    const fontSize = fontSizeMatch ? parseFloat(fontSizeMatch[1]) : 0
+    
+    const fillMatch = attrs.match(/fill="([^"]+)"/) || inner.match(/fill="([^"]+)"/)
+    const fill = fillMatch ? fillMatch[1] : ''
+    
+    const fontWeightMatch = attrs.match(/font-weight="([^"]+)"/) || inner.match(/font-weight="([^"]+)"/)
+    const fontWeight = fontWeightMatch ? fontWeightMatch[1] : 'normal'
+    
+    // 추출한 속성을 최상위 <text>의 attrs에 강제로 포함시켜 치환 시 누락되지 않도록 함
+    if (fill) {
+      if (attrs.includes('fill=')) attrs = attrs.replace(/fill="[^"]*"/, `fill="${fill}"`)
+      else attrs += ` fill="${fill}"`
+    }
+    if (fontSize) {
+      if (attrs.includes('font-size=')) attrs = attrs.replace(/font-size="[^"]*"/, `font-size="${fontSize}"`)
+      else attrs += ` font-size="${fontSize}"`
+    }
+    if (fontWeight !== 'normal') {
+      if (attrs.includes('font-weight=')) attrs = attrs.replace(/font-weight="[^"]*"/, `font-weight="${fontWeight}"`)
+      else attrs += ` font-weight="${fontWeight}"`
+    }
+
     // 내부 tspan 개수 확인
     const tspanCount = (inner.match(/<tspan/g) || []).length
     const actualLines = Math.max(1, tspanCount)
@@ -326,6 +347,7 @@ async function convertToSvg(base64: string, mimeType: string, sectionNum: number
   - 원본 n줄 -> 각 줄에 "텍스트 n줄입력" (n은 해당 블록의 총 줄 수)
 - **중요**: 텍스트 길이를 맞추기 위해 같은 문구를 한 줄에 여러 번 반복(예: "텍스트 입력 텍스트 입력")하는 행위를 **절대 금지**합니다. 한 줄에는 문구를 딱 한 번만 사용하세요.
 - 여러 줄의 텍스트인 경우, 피그마에서 **단일 텍스트 상자(Single Text Node)**로 임포트될 수 있도록 개별 <text>로 쪼개지 마십시오. 반드시 최상위 <text> 1개 안에 여러 개의 <tspan x="..." dy="...">을 사용하여 하나로 묶어 제출하세요.
+- **스타일 속성(fill, font-size, font-weight 등)**은 쪼개진 <tspan>이 아닌 **최상위 <text> 태그에 한 번만 작성**하여 모든 텍스트의 색상과 스타일이 일관되게 보존되도록 하세요.
 - 버튼 내 텍스트: "버튼"
 
 ### 🚀 4. 출력 규칙
