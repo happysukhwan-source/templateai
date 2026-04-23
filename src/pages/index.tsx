@@ -27,10 +27,11 @@ export default function HomePage({ session }: Props) {
     '@context': 'https://schema.org',
     '@type': 'SoftwareApplication',
     name: 'templateAI',
+    alternateName: ['피그마템플릿 자동 변환', '상세페이지템플릿 AI', '상세페이지 피그마 변환'],
     url: 'https://www.templateai.shop',
     applicationCategory: 'DesignApplication',
     operatingSystem: 'Web',
-    description: '상세페이지템플릿을 AI가 자동으로 만들어주는 서비스. 이미지를 올리면 30초 만에 피그마템플릿으로 변환.',
+    description: '상세페이지 이미지를 피그마템플릿으로 자동 변환하는 AI 서비스. 상세페이지템플릿을 30초 만에 생성. 스마트스토어·쿠팡 상세페이지 제작 필수 도구.',
     offers: {
       '@type': 'Offer',
       price: '300',
@@ -74,21 +75,29 @@ export default function HomePage({ session }: Props) {
           text: '가입 시 5장 무료 제공됩니다. 이후 최대 할인 적용 시 장당 ₩300부터 이용 가능합니다.',
         },
       },
+      {
+        '@type': 'Question',
+        name: '상세페이지를 피그마템플릿으로 만들 수 있나요?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: '네. 상세페이지 이미지를 업로드하면 AI가 레이아웃을 분석해 편집 가능한 피그마템플릿으로 변환합니다. 스마트스토어·쿠팡 등 모든 플랫폼의 상세페이지를 지원합니다.',
+        },
+      },
     ],
   }
 
   return (
     <>
       <Head>
-        <title>피그마템플릿 자동 변환 · 상세페이지템플릿 AI | templateAI</title>
-        <meta name="description" content="상세페이지 이미지를 올리면 30초 만에 피그마템플릿으로 자동 변환. 상세페이지템플릿을 AI가 만들어드려요. 스마트스토어·쿠팡 셀러 필수 도구. 가입 시 5장 무료." />
-        <meta name="keywords" content="피그마템플릿, 상세페이지템플릿, 상세페이지 피그마, 피그마 변환, 상세페이지 제작, 스마트스토어 상세페이지템플릿, 쿠팡 상세페이지템플릿, AI 디자인, SVG 변환, 피그마 자동변환" />
+        <title>피그마템플릿 · 상세페이지템플릿 자동 변환 AI | templateAI</title>
+        <meta name="description" content="상세페이지 이미지를 피그마템플릿으로 30초 만에 자동 변환. 상세페이지템플릿을 AI가 만들어드려요. 스마트스토어·쿠팡 상세페이지 제작 필수 도구. 가입 시 5장 무료." />
+        <meta name="keywords" content="피그마템플릿, 상세페이지, 상세페이지템플릿, 상세페이지 피그마, 피그마 변환, 상세페이지 제작, 스마트스토어 상세페이지, 쿠팡 상세페이지, 스마트스토어 상세페이지템플릿, 쿠팡 상세페이지템플릿, AI 디자인, 피그마 자동변환" />
         <link rel="canonical" href="https://www.templateai.shop/" />
         <link rel="alternate" type="application/rss+xml" title="templateAI RSS" href="https://www.templateai.shop/rss.xml" />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://www.templateai.shop/" />
-        <meta property="og:title" content="피그마템플릿 자동 변환 · 상세페이지템플릿 AI | templateAI" />
-        <meta property="og:description" content="상세페이지 이미지를 올리면 30초 만에 피그마템플릿으로 자동 변환. 상세페이지템플릿을 AI가 만들어드려요. 스마트스토어·쿠팡 셀러 필수 도구." />
+        <meta property="og:title" content="피그마템플릿 · 상세페이지템플릿 자동 변환 AI | templateAI" />
+        <meta property="og:description" content="상세페이지 이미지를 피그마템플릿으로 30초 만에 자동 변환. 상세페이지템플릿을 AI가 만들어드려요. 스마트스토어·쿠팡 상세페이지 제작 필수 도구." />
         <meta property="og:site_name" content="templateAI" />
         <meta property="og:locale" content="ko_KR" />
         <script
