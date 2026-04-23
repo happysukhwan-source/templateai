@@ -115,7 +115,7 @@ export default function HomePage({ session }: Props) {
         </div>
 
         <h1 style={{ fontSize: 'clamp(48px, 8vw, 96px)', fontWeight: 900, lineHeight: 1.0, letterSpacing: -3, maxWidth: 800, marginBottom: 28 }}>
-          상세페이지를<br />
+          이미지를<br />
           <span style={{ color: 'var(--accent)', position: 'relative' }}>
             피그마템플릿
             <span style={{ position: 'absolute', bottom: 4, left: 0, right: 0, height: 6, background: 'var(--accent)', opacity: 0.2, borderRadius: 2 }} />
